@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const fallbackTitle = "SIXRAM NextGen AutoHub";
+const fallbackTitle = "Sixram Technologies | Autohub Application";
 const loginSettingsUpdatedEvent = "login-settings-updated";
 const brandedFaviconSelector = "link[rel='icon'][data-browser-branding='true']";
 

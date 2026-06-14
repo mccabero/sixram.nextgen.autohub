@@ -3,7 +3,7 @@ import BrowserBranding from "./browser-branding";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SIXRAM NextGen AutoHub",
+  title: "Sixram Technologies | Autohub Application",
   description: "Next.js and Prisma migration foundation for SIXRAM NextGen.",
 };
 
