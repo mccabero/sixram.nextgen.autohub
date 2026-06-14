@@ -54,7 +54,6 @@ export async function POST(request: Request, context: CompanyLogoContext) {
     request,
     directory(companyId),
     "company_logo",
-    mapCompanyInfo(company),
+    await mapCompanyInfo(company),
   );
 }
-

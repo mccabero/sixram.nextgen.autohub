@@ -7,19 +7,42 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
+import { del, list } from "@vercel/blob";
 import { badRequest, notFound } from "@/server/api/errors";
 import { legacyJson } from "@/server/api/legacy-json";
 import { getUploadsRoot } from "@/server/api/uploads";
+import {
+  getPrivateBlobResponse,
+  getPrivateBlobToken,
+  imageContentType,
+  imageExtensionFromFile,
+  imageTypes,
+  putImageBlob,
+  safeBlobFilename,
+} from "@/server/storage/blob-images";
 
-const imageTypes = new Map([
-  [".jpg", "image/jpeg"],
-  [".jpeg", "image/jpeg"],
-  [".png", "image/png"],
-  [".gif", "image/gif"],
-  [".webp", "image/webp"],
-]);
+export async function listInspectionPhotos(inspectionId: number) {
+  const token = getPrivateBlobToken();
 
-export function listInspectionPhotos(inspectionId: number) {
+  if (token) {
+    const result = await list({
+      prefix: photoBlobPrefix(inspectionId),
+      limit: 1000,
+      token,
+    });
+
+    return result.blobs
+      .filter((blob) => imageTypes.has(path.extname(blob.pathname).toLowerCase()))
+      .sort((a, b) => a.pathname.localeCompare(b.pathname))
+      .map((blob) => {
+        const filename = path.basename(blob.pathname);
+        return {
+          filename,
+          url: photoApiUrl(inspectionId, filename),
+        };
+      });
+  }
+
   const directory = photoDirectory(inspectionId);
 
   if (!existsSync(/*turbopackIgnore: true*/ directory)) {
@@ -31,7 +54,7 @@ export function listInspectionPhotos(inspectionId: number) {
     .sort()
     .map((fileName) => ({
       filename: fileName,
-      url: `/api/operations/inspections/${inspectionId}/photos/${encodeURIComponent(fileName)}`,
+      url: photoApiUrl(inspectionId, fileName),
     }));
 }
 
@@ -46,16 +69,36 @@ export async function saveInspectionPhoto(
     return badRequest("Image file is required.");
   }
 
-  const extension = extensionFromFile(file);
+  const extension = imageExtensionFromFile(file);
 
   if (!extension) {
     return badRequest("Only JPG, PNG, GIF, and WebP images are supported.");
   }
 
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension}`;
+  const token = getPrivateBlobToken();
+
+  if (token) {
+    const blob = await putImageBlob({
+      access: "private",
+      file,
+      pathname: `${photoBlobPrefix(inspectionId)}${fileName}`,
+      token,
+    });
+
+    if (!blob) {
+      return badRequest("Only JPG, PNG, GIF, and WebP images are supported.");
+    }
+
+    return legacyJson({
+      filename: fileName,
+      url: photoApiUrl(inspectionId, fileName),
+    });
+  }
+
   const directory = photoDirectory(inspectionId);
   mkdirSync(/*turbopackIgnore: true*/ directory, { recursive: true });
 
-  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${extension}`;
   const filePath = path.join(directory, fileName);
   writeFileSync(
     /*turbopackIgnore: true*/ filePath,
@@ -64,16 +107,27 @@ export async function saveInspectionPhoto(
 
   return legacyJson({
     filename: fileName,
-    url: `/api/operations/inspections/${inspectionId}/photos/${encodeURIComponent(fileName)}`,
+    url: photoApiUrl(inspectionId, fileName),
   });
 }
 
-export function serveInspectionPhoto(inspectionId: number, filename: string) {
-  const safeFileName = path.basename(filename);
+export async function serveInspectionPhoto(inspectionId: number, filename: string) {
+  const safeFileName = safeBlobFilename(filename);
   const extension = path.extname(safeFileName).toLowerCase();
 
   if (!imageTypes.has(extension)) {
     return notFound();
+  }
+
+  const token = getPrivateBlobToken();
+
+  if (token) {
+    const response = await getPrivateBlobResponse(
+      `${photoBlobPrefix(inspectionId)}${safeFileName}`,
+      token,
+    );
+
+    return response ?? notFound();
   }
 
   const filePath = path.join(photoDirectory(inspectionId), safeFileName);
@@ -84,18 +138,28 @@ export function serveInspectionPhoto(inspectionId: number, filename: string) {
 
   return new Response(readFileSync(/*turbopackIgnore: true*/ filePath), {
     headers: {
-      "content-type": imageTypes.get(extension) ?? "application/octet-stream",
+      "content-type": imageContentType(extension),
       "cache-control": "public, max-age=300",
     },
   });
 }
 
-export function deleteInspectionPhoto(inspectionId: number, filename: string) {
-  const safeFileName = path.basename(filename);
+export async function deleteInspectionPhoto(
+  inspectionId: number,
+  filename: string,
+) {
+  const safeFileName = safeBlobFilename(filename);
   const extension = path.extname(safeFileName).toLowerCase();
 
   if (!imageTypes.has(extension)) {
     return notFound();
+  }
+
+  const token = getPrivateBlobToken();
+
+  if (token) {
+    await del(`${photoBlobPrefix(inspectionId)}${safeFileName}`, { token });
+    return new Response(null, { status: 204 });
   }
 
   const filePath = path.join(photoDirectory(inspectionId), safeFileName);
@@ -112,13 +176,10 @@ function photoDirectory(inspectionId: number) {
   return path.join(getUploadsRoot(), "inspections", String(inspectionId), "photos");
 }
 
-function extensionFromFile(file: Blob) {
-  const type = file.type.toLowerCase();
-  const byType = [...imageTypes.entries()].find(([, mime]) => mime === type)?.[0];
-  if (byType) return byType;
-
-  const maybeName = "name" in file ? String(file.name) : "";
-  const extension = path.extname(maybeName).toLowerCase();
-  return imageTypes.has(extension) ? extension : null;
+function photoBlobPrefix(inspectionId: number) {
+  return `inspections/${inspectionId}/photos/`;
 }
 
+function photoApiUrl(inspectionId: number, fileName: string) {
+  return `/api/operations/inspections/${inspectionId}/photos/${encodeURIComponent(fileName)}`;
+}

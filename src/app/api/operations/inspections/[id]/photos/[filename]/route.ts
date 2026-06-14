@@ -42,4 +42,3 @@ export async function DELETE(request: Request, context: InspectionPhotoContext) 
 
   return deleteInspectionPhoto(inspectionId, decodeURIComponent(filename));
 }
-

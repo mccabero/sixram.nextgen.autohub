@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     request,
     directory(),
     "login_logo",
-    getLoginSettingsPayload(),
+    await getLoginSettingsPayload(),
   );
 }
 
@@ -40,6 +40,9 @@ export async function DELETE(request: Request) {
     return authorization.response;
   }
 
-  return deleteUploadedImage(directory(), "login_logo", getLoginSettingsPayload());
+  return deleteUploadedImage(
+    directory(),
+    "login_logo",
+    await getLoginSettingsPayload(),
+  );
 }
-

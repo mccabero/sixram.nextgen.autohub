@@ -31,12 +31,18 @@ function readBoolean(value: unknown) {
   return Boolean(value)
 }
 
+function normalizeCompanyId(value: unknown) {
+  const id = Number(value)
+  return Number.isInteger(id) && id > 0 ? id : 0
+}
+
 export default function ManageCompany(){
   const params = useParams()
   const navigate = useNavigate()
   const location = useLocation()
   const id = params.id
   const isAdd = !id || id === 'add' || location.pathname.endsWith('/add')
+  const routeCompanyId = normalizeCompanyId(id)
   const { showToast } = useToast()
   const { logout } = useAuth()
   const [, setLoading] = useState(false)
@@ -47,26 +53,32 @@ export default function ManageCompany(){
   const [form, setForm] = useState<CompanyForm>({ id: 0, name: '', email: '', mobile: '', address: '', gcashAccount: '', bankAccount: '', tinNumber: '', createdById: 0, createdDateTime: '', updatedById: 0, updatedDateTime: '', logoData: '', logoFile: null, isPrimaryCompany: false })
 
   useEffect(() => {
-    if (!id || isAdd) return
+    if (isAdd) return
+    if (!routeCompanyId) {
+      showToast('Company record was not found. Please select a company again.', 'error')
+      navigate('/administrators/company-information', { replace: true })
+      return
+    }
+
     let mounted = true
 
     const load = async () => {
       setLoading(true)
       try {
-        const res: any = await getCompanyById(id!)
+        const res: any = await getCompanyById(routeCompanyId)
         if (!mounted) return
         if (res) {
           const logoPath = res.logo ?? res.logoUrl ?? res.Logo ?? ''
           setSavedLogoData(logoPath)
           setForm(f => ({
             ...f,
-            id: res.id ?? res.companyId ?? f.id,
-            name: res.name ?? res.CompanyName ?? '',
+            id: normalizeCompanyId(res.id ?? res.Id ?? res.companyId ?? res.CompanyId) || routeCompanyId,
+            name: res.name ?? res.Name ?? res.companyName ?? res.CompanyName ?? '',
             email: res.email ?? res.Email ?? '',
-            mobile: res.mobileNumber ?? res.mobile ?? res.Mobile ?? '',
+            mobile: res.mobileNumber ?? res.MobileNumber ?? res.mobile ?? res.Mobile ?? '',
             address: res.address ?? res.Address ?? '',
             gcashAccount: res.gCash ?? res.gcash ?? res.GCash ?? res.Gcash ?? '',
-            bankAccount: res.bankNo ?? res.bankAccount ?? res.BankAccount ?? '',
+            bankAccount: res.bankNo ?? res.BankNo ?? res.bankAccount ?? res.BankAccount ?? '',
             tinNumber: res.tin ?? res.TIN ?? res.tinNumber ?? '',
             isPrimaryCompany: readBoolean(res.isPrimaryCompany ?? res.primaryCompany ?? res.IsPrimaryCompany ?? res.PrimaryCompany ?? false),
             logoData: logoPath || f.logoData,
@@ -75,6 +87,9 @@ export default function ManageCompany(){
             updatedById: res.updatedById ?? res.UpdatedById ?? f.updatedById ?? 0,
             updatedDateTime: res.updatedDateTime ?? res.UpdatedDateTime ?? f.updatedDateTime ?? ''
           }))
+        } else {
+          showToast('Company record was not found. Please select a company again.', 'error')
+          navigate('/administrators/company-information', { replace: true })
         }
       } catch (e: any) {
         const err = e as any
@@ -83,6 +98,8 @@ export default function ManageCompany(){
           navigate('/login')
           return
         }
+        showToast('Company record was not found. Please select a company again.', 'error')
+        navigate('/administrators/company-information', { replace: true })
       } finally {
         if (mounted) setLoading(false)
       }
@@ -90,7 +107,7 @@ export default function ManageCompany(){
 
     load()
     return () => { mounted = false }
-  }, [id])
+  }, [isAdd, routeCompanyId, logout, navigate, showToast])
 
   function updateField<K extends keyof CompanyForm>(key: K, value: CompanyForm[K]) { setForm(f => ({ ...f, [key]: value })) }
 
@@ -153,12 +170,20 @@ export default function ManageCompany(){
 
   async function saveCompany(addMode: boolean){
     if (!validate()) return
+    const existingCompanyId = normalizeCompanyId(form.id) || routeCompanyId
+
+    if (!addMode && !existingCompanyId) {
+      showToast('Cannot update this company because its ID is missing.', 'error')
+      navigate('/administrators/company-information', { replace: true })
+      return
+    }
+
     setSaving(true)
     try{
       showToast(addMode ? 'Creating company...' : 'Updating company...', 'info')
 
       const payload: any = {
-        id: addMode ? 0 : (Number(form.id) || Number(id) || 0),
+        id: addMode ? 0 : existingCompanyId,
         name: form.name,
         address: form.address,
         email: form.email,
@@ -172,14 +197,14 @@ export default function ManageCompany(){
         updatedById: form.updatedById || undefined,
         updatedDateTime: new Date().toISOString()
       }
-      let savedCompanyId = addMode ? 0 : (Number(form.id) || Number(id) || 0)
+      let savedCompanyId = addMode ? 0 : existingCompanyId
       if (addMode) {
         const created: any = await createCompany(payload)
         savedCompanyId = Number(created?.id ?? created?.Id ?? created?.companyId ?? created?.CompanyId ?? 0)
         if (!savedCompanyId) throw new Error('Company was created but no company id was returned')
         showToast('Company added','success')
       } else {
-        const updated: any = await updateCompany(id!, payload)
+        const updated: any = await updateCompany(existingCompanyId, payload)
         savedCompanyId = Number(updated?.id ?? updated?.Id ?? updated?.companyId ?? updated?.CompanyId ?? savedCompanyId)
         showToast('Company updated','success')
       }

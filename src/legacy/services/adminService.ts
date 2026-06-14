@@ -26,6 +26,12 @@ function normalizeId(value: unknown) {
   return Number.isFinite(n) && n > 0 ? n : 0
 }
 
+function requirePositiveId(value: unknown, label = 'ID') {
+  const id = normalizeId(value)
+  if (!id) throw new Error(`${label} is required.`)
+  return id
+}
+
 function publishEffectivePermissionsFromRbacSnapshot(snapshot: any) {
   const currentUserId = getCurrentUserId(currentAuthUser())
   if (!currentUserId) return false
@@ -381,10 +387,11 @@ export async function updateRole(id: string | number, payload: any) {
 
 export async function getCompanyById(id: string | number) {
   try {
+    const companyId = requirePositiveId(id, 'Company ID')
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
     const headers: Record<string, string> = { Accept: 'application/json' }
     if (token) headers['Authorization'] = `Bearer ${token}`
-    const res = await fetch(`/api/companyinfo/${id}`, { headers })
+    const res = await fetch(`/api/companyinfo/${companyId}`, { headers })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     try { return await res.json() } catch { return null }
   } catch (e) {
@@ -407,13 +414,14 @@ export async function createCompany(payload: any) {
 
 export async function uploadCompanyLogo(companyId: string | number, file: File) {
   try {
+    const id = requirePositiveId(companyId, 'Company ID')
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
     const headers: Record<string, string> = {}
     if (token) headers['Authorization'] = `Bearer ${token}`
 
     const form = new FormData()
     form.append('file', file, file.name)
-    const res = await fetch(`/api/companyinfo/${companyId}/logo`, { method: 'POST', headers, body: form })
+    const res = await fetch(`/api/companyinfo/${id}/logo`, { method: 'POST', headers, body: form })
     if (!res.ok) {
       // try to extract server error message
       const text = await res.text().catch(() => '')
@@ -489,10 +497,11 @@ export function deleteLoginLogo() {
 
 export async function updateCompany(id: string | number, payload: any) {
   try {
+    const companyId = requirePositiveId(id, 'Company ID')
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
     const headers: Record<string, string> = { Accept: 'application/json', 'Content-Type': 'application/json' }
     if (token) headers['Authorization'] = `Bearer ${token}`
-    const res = await fetch(`/api/companyinfo/${id}`, { method: 'PUT', headers, body: JSON.stringify(payload) })
+    const res = await fetch(`/api/companyinfo/${companyId}`, { method: 'PUT', headers, body: JSON.stringify(payload) })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     try { return await res.json() } catch { return null }
   } catch (e) {
@@ -502,10 +511,11 @@ export async function updateCompany(id: string | number, payload: any) {
 
 export async function deleteCompany(id: string | number) {
   try {
+    const companyId = requirePositiveId(id, 'Company ID')
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
     const headers: Record<string, string> = { Accept: 'application/json' }
     if (token) headers['Authorization'] = `Bearer ${token}`
-    const res = await fetch(`/api/companyinfo/${id}`, { method: 'DELETE', headers })
+    const res = await fetch(`/api/companyinfo/${companyId}`, { method: 'DELETE', headers })
     if (!res.ok) {
       const text = await res.text().catch(() => '')
       let message = text.trim()

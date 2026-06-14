@@ -27,11 +27,45 @@ export interface CompanyItem {
   updatedDateTime?: string
 }
 
+function normalizeCompanyId(value: unknown) {
+  const id = Number(value)
+  return Number.isInteger(id) && id > 0 ? id : 0
+}
+
+function readBoolean(value: unknown) {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  if (typeof value === 'string') return ['true', '1', 'yes', 'y'].includes(value.trim().toLowerCase())
+  return false
+}
+
+function normalizeCompanyItem(item: any): CompanyItem {
+  const id = normalizeCompanyId(item?.id ?? item?.Id ?? item?.companyId ?? item?.CompanyId)
+
+  return {
+    ...item,
+    id,
+    name: item?.name ?? item?.Name ?? item?.companyName ?? item?.CompanyName ?? '',
+    address: item?.address ?? item?.Address ?? '',
+    email: item?.email ?? item?.Email ?? '',
+    mobileNumber: item?.mobileNumber ?? item?.MobileNumber ?? item?.mobile ?? item?.Mobile ?? '',
+    tin: item?.tin ?? item?.TIN ?? item?.tinNumber ?? '',
+    gCash: item?.gCash ?? item?.GCash ?? item?.gcash ?? item?.Gcash ?? '',
+    bankNo: item?.bankNo ?? item?.BankNo ?? item?.bankAccount ?? item?.BankAccount ?? '',
+    isPrimaryCompany: readBoolean(item?.isPrimaryCompany ?? item?.IsPrimaryCompany ?? item?.primaryCompany ?? item?.PrimaryCompany),
+    primaryCompany: readBoolean(item?.primaryCompany ?? item?.PrimaryCompany ?? item?.isPrimaryCompany ?? item?.IsPrimaryCompany),
+    createdById: item?.createdById ?? item?.CreatedById,
+    createdDateTime: item?.createdDateTime ?? item?.CreatedDateTime,
+    updatedById: item?.updatedById ?? item?.UpdatedById,
+    updatedDateTime: item?.updatedDateTime ?? item?.UpdatedDateTime,
+  }
+}
+
 export default function CompanyInfoTable({ items = [] }: { items?: CompanyItem[] }) {
   const navigate = useNavigate()
   const { showToast } = useToast()
   const { logout } = useAuth()
-  const [rows, setRows] = useState<CompanyItem[]>(items)
+  const [rows, setRows] = useState<CompanyItem[]>(() => items.map(normalizeCompanyItem))
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -74,15 +108,29 @@ export default function CompanyInfoTable({ items = [] }: { items?: CompanyItem[]
   }, [pageCount, page])
 
   function handleAdd() { navigate('/administrators/company/add') }
-  function handleEdit(id: number) { navigate(`/administrators/company/${id}`) }
-  function handleDelete(id: number) { setDeleteTargetId(id); setShowDeleteConfirm(true) }
+  function handleEdit(id: number) {
+    const companyId = normalizeCompanyId(id)
+    if (!companyId) {
+      showToast('Cannot edit this company because its ID is missing.', 'error')
+      return
+    }
+    navigate(`/administrators/company/${companyId}`)
+  }
+  function handleDelete(id: number) {
+    const companyId = normalizeCompanyId(id)
+    if (!companyId) {
+      showToast('Cannot delete this company because its ID is missing.', 'error')
+      return
+    }
+    setDeleteTargetId(companyId); setShowDeleteConfirm(true)
+  }
 
   async function confirmDelete() {
     if (deleteTargetId == null) return
     setIsDeleting(true)
     try {
       await deleteCompany(deleteTargetId)
-      setRows(current => current.filter(item => item.id !== deleteTargetId))
+      setRows(current => current.filter(item => normalizeCompanyId(item.id) !== deleteTargetId))
       showToast('Record deleted', 'success')
     } catch (e: any) {
       const err = e as any
@@ -104,7 +152,7 @@ export default function CompanyInfoTable({ items = [] }: { items?: CompanyItem[]
       try {
         const res = await getCompanyInfo()
         if (!mounted) return
-        if (Array.isArray(res)) setRows(res as any)
+        if (Array.isArray(res)) setRows(res.map(normalizeCompanyItem))
         else setRows([])
       } catch (e: any) {
         const err = e as any
@@ -159,9 +207,9 @@ export default function CompanyInfoTable({ items = [] }: { items?: CompanyItem[]
             </thead>
             <tbody>
               {paged.length === 0 && <EmptyState icon={Building2} colSpan={6} />}
-              {paged.map(row => (
-                <tr key={row.id} className="border-b border-slate-100 dark:border-slate-700/60 last:border-b-0 hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors">
-                  <td className="px-5 py-4 align-middle text-sm text-slate-500 dark:text-slate-400 font-mono">#{row.id}</td>
+              {paged.map((row, index) => (
+                <tr key={row.id || `${row.name}-${index}`} className="border-b border-slate-100 dark:border-slate-700/60 last:border-b-0 hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors">
+                  <td className="px-5 py-4 align-middle text-sm text-slate-500 dark:text-slate-400 font-mono">{row.id ? `#${row.id}` : '-'}</td>
                   <td className="px-5 py-4 align-middle text-sm">
                     <button onClick={() => handleEdit(row.id)} className="text-sky-600 dark:text-sky-400 hover:underline transition-colors font-semibold">{row.name}</button>
                   </td>

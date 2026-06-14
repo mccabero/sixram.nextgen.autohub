@@ -19,6 +19,9 @@ const envSchema = z.object({
   STORAGE_PROVIDER: z.string().default("local"),
   STORAGE_BUCKET: z.string().optional(),
   STORAGE_PUBLIC_BASE_URL: z.string().optional(),
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
+  PRIVATE_BLOB_READ_WRITE_TOKEN: z.string().optional(),
+  PUBLIC_BLOB_READ_WRITE_TOKEN: z.string().optional(),
   HIKVISION_WEBHOOK_SECRET: z.string().optional(),
   HIKVISION_GATEWAY_BASE_URL: z.string().optional(),
 });

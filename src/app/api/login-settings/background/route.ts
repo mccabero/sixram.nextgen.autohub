@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     request,
     directory(),
     "login_background",
-    getLoginSettingsPayload(),
+    await getLoginSettingsPayload(),
   );
 }
 
@@ -43,7 +43,6 @@ export async function DELETE(request: Request) {
   return deleteUploadedImage(
     directory(),
     "login_background",
-    getLoginSettingsPayload(),
+    await getLoginSettingsPayload(),
   );
 }
-

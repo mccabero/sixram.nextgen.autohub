@@ -25,7 +25,7 @@ export async function GET(
     return notFound();
   }
 
-  return legacyJson(listInspectionPhotos(inspectionId));
+  return legacyJson(await listInspectionPhotos(inspectionId));
 }
 
 export async function POST(
@@ -46,4 +46,3 @@ export async function POST(
 
   return saveInspectionPhoto(request, inspectionId);
 }
-

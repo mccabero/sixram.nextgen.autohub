@@ -9,16 +9,31 @@ import path from "node:path";
 import { badRequest, notFound } from "@/server/api/errors";
 import { legacyJson } from "@/server/api/legacy-json";
 import { findUploadedImageFile } from "@/server/api/uploads";
+import {
+  deleteBlobImagesByPrefix,
+  findBlobImageByPrefix,
+  getPublicBlobToken,
+  imageContentType,
+  imageExtensionFromFile,
+  imageTypes,
+  localDirectoryToBlobPrefix,
+  putImageBlob,
+} from "@/server/storage/blob-images";
 
-const imageTypes = new Map([
-  [".jpg", "image/jpeg"],
-  [".jpeg", "image/jpeg"],
-  [".png", "image/png"],
-  [".gif", "image/gif"],
-  [".webp", "image/webp"],
-]);
+export async function serveUploadedImage(directory: string, prefix: string) {
+  const token = getPublicBlobToken();
 
-export function serveUploadedImage(directory: string, prefix: string) {
+  if (token) {
+    const blob = await findBlobImageByPrefix(
+      localDirectoryToBlobPrefix(directory, prefix),
+      token,
+    );
+
+    if (blob) {
+      return Response.redirect(blob.url);
+    }
+  }
+
   const asset = findUploadedImageFile(directory, prefix);
 
   if (!asset) {
@@ -27,7 +42,7 @@ export function serveUploadedImage(directory: string, prefix: string) {
 
   return new Response(readFileSync(/*turbopackIgnore: true*/ asset.fullPath), {
     headers: {
-      "content-type": imageTypes.get(asset.extension) ?? "application/octet-stream",
+      "content-type": imageContentType(asset.extension),
       "cache-control": "public, max-age=300",
     },
   });
@@ -46,10 +61,34 @@ export async function saveUploadedImage(
     return badRequest("Image file is required.");
   }
 
-  const extension = extensionFromFile(file);
+  const extension = imageExtensionFromFile(file);
 
   if (!extension) {
     return badRequest("Only JPG, PNG, GIF, and WebP images are supported.");
+  }
+
+  const token = getPublicBlobToken();
+  const blobPrefix = localDirectoryToBlobPrefix(directory, prefix);
+
+  if (token) {
+    await deleteBlobImagesByPrefix(blobPrefix, token);
+    const blob = await putImageBlob({
+      access: "public",
+      allowOverwrite: true,
+      file,
+      pathname: `${blobPrefix}${extension}`,
+      token,
+    });
+
+    if (!blob) {
+      return badRequest("Only JPG, PNG, GIF, and WebP images are supported.");
+    }
+
+    return legacyJson({
+      ...responsePayload,
+      path: blob.url,
+      url: blob.url,
+    });
   }
 
   mkdirSync(/*turbopackIgnore: true*/ directory, { recursive: true });
@@ -62,23 +101,23 @@ export async function saveUploadedImage(
   return legacyJson(responsePayload);
 }
 
-export function deleteUploadedImage(
+export async function deleteUploadedImage(
   directory: string,
   prefix: string,
   responsePayload: Record<string, unknown>,
 ) {
+  const token = getPublicBlobToken();
+
+  if (token) {
+    await deleteBlobImagesByPrefix(
+      localDirectoryToBlobPrefix(directory, prefix),
+      token,
+    );
+    return legacyJson(responsePayload);
+  }
+
   removeUploadedImageFiles(directory, prefix);
   return legacyJson(responsePayload);
-}
-
-function extensionFromFile(file: Blob) {
-  const type = file.type.toLowerCase();
-  const byType = [...imageTypes.entries()].find(([, mime]) => mime === type)?.[0];
-  if (byType) return byType;
-
-  const maybeName = "name" in file ? String(file.name) : "";
-  const extension = path.extname(maybeName).toLowerCase();
-  return imageTypes.has(extension) ? extension : null;
 }
 
 function removeUploadedImageFiles(directory: string, prefix: string) {
@@ -91,4 +130,3 @@ function removeUploadedImageFiles(directory: string, prefix: string) {
     }
   }
 }
-

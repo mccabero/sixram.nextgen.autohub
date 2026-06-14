@@ -311,7 +311,7 @@ export default function ManageSettings() {
           </div>
           <h1 className="mt-3 text-2xl font-semibold text-slate-900 dark:text-slate-100">Manage Settings</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-            Configure the login page background and logo. Uploaded images are stored in <span className="font-semibold text-slate-700 dark:text-slate-200">uploads/login</span> and apply automatically on the login screen.
+            Configure the login page background and logo. Uploaded images are stored in Vercel Blob and apply automatically on the login screen.
           </p>
         </div>
 
