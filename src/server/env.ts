@@ -4,7 +4,7 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.string().url().optional(),
   JWT_SECRET: z.string().min(32).optional(),
   JWT_ISSUER: z.string().optional(),
   JWT_AUDIENCE: z.string().optional(),
@@ -26,3 +26,11 @@ const envSchema = z.object({
 export type AppEnv = z.infer<typeof envSchema>;
 
 export const env: AppEnv = envSchema.parse(process.env);
+
+export function requiredDatabaseUrl() {
+  if (!env.DATABASE_URL) {
+    throw new Error("DATABASE_URL is required for database access.");
+  }
+
+  return env.DATABASE_URL;
+}

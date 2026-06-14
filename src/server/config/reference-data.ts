@@ -29,7 +29,7 @@ type CrudDelegate = {
 };
 
 type ConfigDefinition = {
-  delegate: CrudDelegate;
+  getDelegate: () => CrudDelegate;
   kind: "simple" | "parameter-group";
 };
 
@@ -50,31 +50,31 @@ const parameterGroupSelect = {
 
 const definitions: Partial<Record<ConfigResourceKey, ConfigDefinition>> = {
   "service-categories": {
-    delegate: prisma.serviceCategory as unknown as CrudDelegate,
+    getDelegate: () => prisma.serviceCategory as unknown as CrudDelegate,
     kind: "simple",
   },
   "service-groups": {
-    delegate: prisma.serviceGroup as unknown as CrudDelegate,
+    getDelegate: () => prisma.serviceGroup as unknown as CrudDelegate,
     kind: "simple",
   },
   "product-groups": {
-    delegate: prisma.productGroup as unknown as CrudDelegate,
+    getDelegate: () => prisma.productGroup as unknown as CrudDelegate,
     kind: "simple",
   },
   "product-categories": {
-    delegate: prisma.productCategory as unknown as CrudDelegate,
+    getDelegate: () => prisma.productCategory as unknown as CrudDelegate,
     kind: "simple",
   },
   "unit-of-measures": {
-    delegate: prisma.unitOfMeasure as unknown as CrudDelegate,
+    getDelegate: () => prisma.unitOfMeasure as unknown as CrudDelegate,
     kind: "simple",
   },
   "job-statuses": {
-    delegate: prisma.jobStatus as unknown as CrudDelegate,
+    getDelegate: () => prisma.jobStatus as unknown as CrudDelegate,
     kind: "simple",
   },
   "parameter-groups": {
-    delegate: prisma.parameterGroup as unknown as CrudDelegate,
+    getDelegate: () => prisma.parameterGroup as unknown as CrudDelegate,
     kind: "parameter-group",
   },
 };
@@ -152,7 +152,7 @@ export async function listConfigResource(
   }
 
   const definition = getDefinition(resource);
-  const rows = await definition.delegate.findMany({
+  const rows = await definition.getDelegate().findMany({
     orderBy: { Id: "asc" },
     select: selectFor(definition),
   });
@@ -186,7 +186,7 @@ export async function getConfigResource(resource: ConfigResourceKey, id: number)
   }
 
   const definition = getDefinition(resource);
-  const row = await definition.delegate.findUnique({
+  const row = await definition.getDelegate().findUnique({
     where: { Id: id },
     select: selectFor(definition),
   });
@@ -213,7 +213,7 @@ export async function createConfigResource(
     }
 
     const definition = getDefinition(resource);
-    const row = await definition.delegate.create({
+    const row = await definition.getDelegate().create({
       data: createDataForDefinition(definition, body, actorUserId),
       select: selectFor(definition),
     });
@@ -246,7 +246,7 @@ export async function updateConfigResource(
     }
 
     const definition = getDefinition(resource);
-    await definition.delegate.update({
+    await definition.getDelegate().update({
       where: { Id: id },
       data: updateDataForDefinition(definition, body, actorUserId),
     });
@@ -265,7 +265,7 @@ export async function deleteConfigResource(resource: ConfigResourceKey, id: numb
         : getDefinition(resource);
 
     if (definition) {
-      await definition.delegate.delete({ where: { Id: id } });
+      await definition.getDelegate().delete({ where: { Id: id } });
       return;
     }
 
