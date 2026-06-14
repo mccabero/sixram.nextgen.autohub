@@ -17,7 +17,11 @@ function cleanToken(value: string | undefined) {
 }
 
 export function getPublicBlobToken() {
-  return cleanToken(process.env.PUBLIC_BLOB_READ_WRITE_TOKEN);
+  return (
+    cleanToken(process.env.PUBLIC_BLOB_READ_WRITE_TOKEN) ??
+    cleanToken(process.env.BLOB_PUBLIC_READ_WRITE_TOKEN) ??
+    cleanToken(process.env.VERCEL_BLOB_PUBLIC_READ_WRITE_TOKEN)
+  );
 }
 
 export function getPrivateBlobToken() {

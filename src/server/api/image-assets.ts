@@ -103,7 +103,7 @@ export async function saveUploadedImage(
     } catch (error) {
       console.error("[image-assets] Blob upload failed", error);
       return badRequest(
-        "Public Blob upload failed. Please verify PUBLIC_BLOB_READ_WRITE_TOKEN is connected to this project.",
+        "Public Blob upload failed. Please verify the public Blob token is connected to this project.",
       );
     }
   }
@@ -135,7 +135,7 @@ export async function deleteUploadedImage(
     } catch (error) {
       console.error("[image-assets] Blob delete failed", error);
       return badRequest(
-        "Public Blob delete failed. Please verify PUBLIC_BLOB_READ_WRITE_TOKEN is connected to this project.",
+        "Public Blob delete failed. Please verify the public Blob token is connected to this project.",
       );
     }
   }

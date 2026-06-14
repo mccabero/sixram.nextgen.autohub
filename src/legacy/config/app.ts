@@ -17,7 +17,7 @@ function resolveApiBaseUrl() {
 export const APP = {
   COPYRIGHT_YEAR: 2026,
   COMPANY: 'Sixram Technologies Inc.',
-  VERSION: `2.${minor}.${patch}.${buildNumber}`,
+  VERSION: `3.${minor}.${patch}.${buildNumber}`,
   BUILD_NUMBER: buildNumber,
   // Default to the current frontend origin so IIS can reverse-proxy /api requests
   // to the backend site. Override with VITE_API_BASE_URL only when needed.

@@ -22,6 +22,8 @@ const envSchema = z.object({
   BLOB_READ_WRITE_TOKEN: z.string().optional(),
   PRIVATE_BLOB_READ_WRITE_TOKEN: z.string().optional(),
   PUBLIC_BLOB_READ_WRITE_TOKEN: z.string().optional(),
+  BLOB_PUBLIC_READ_WRITE_TOKEN: z.string().optional(),
+  VERCEL_BLOB_PUBLIC_READ_WRITE_TOKEN: z.string().optional(),
   HIKVISION_WEBHOOK_SECRET: z.string().optional(),
   HIKVISION_GATEWAY_BASE_URL: z.string().optional(),
 });
