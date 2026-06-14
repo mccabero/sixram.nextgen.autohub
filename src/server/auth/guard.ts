@@ -6,9 +6,9 @@ import {
   type JarvisClaims,
 } from "@/server/auth/claims";
 import {
-  canSignIn,
+  canLoginPermission,
   getApiPermissionKeys,
-  hasAllPermissions,
+  getEffectivePermissionKeys,
 } from "@/server/auth/rbac";
 
 export type AuthorizedApiUser = {
@@ -57,7 +57,9 @@ export async function authorizeApiRequest(
       };
     }
 
-    if (!(await canSignIn(userId))) {
+    const permissionKeys = await getEffectivePermissionKeys(userId);
+
+    if (!permissionKeys.has(canLoginPermission)) {
       return {
         authorized: false,
         response: error("Your account is not allowed to sign in.", 403),
@@ -66,7 +68,7 @@ export async function authorizeApiRequest(
 
     if (
       requiredPermissions.length > 0 &&
-      !(await hasAllPermissions(userId, requiredPermissions))
+      !requiredPermissions.every((permission) => permissionKeys.has(permission))
     ) {
       return {
         authorized: false,

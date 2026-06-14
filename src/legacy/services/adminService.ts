@@ -1,6 +1,15 @@
 // @ts-nocheck
 import getCurrentUserId from '../auth/getCurrentUserId'
-import { publishEffectivePermissionKeys } from '../utils/effectivePermissions'
+import {
+  getCachedEffectivePermissionKeys,
+  hasCachedEffectivePermissionKeys,
+  publishEffectivePermissionKeys,
+} from '../utils/effectivePermissions'
+
+let loginSettingsCache: any | null = null
+let loginSettingsLoad: Promise<any> | null = null
+let effectivePermissionsLoad: Promise<string[]> | null = null
+let effectivePermissionsCacheReady = false
 
 function currentAuthUser() {
   if (typeof window === 'undefined') return undefined
@@ -159,13 +168,21 @@ export async function updateUserWithToken(id: string | number, payload: any, tok
 }
 
 export const getCompanyInfo = () => fetchJson('/api/companyinfo')
-export async function getLoginSettings() {
-  try {
+export async function getLoginSettings(options?: { force?: boolean }) {
+  if (!options?.force && loginSettingsCache !== null) return loginSettingsCache
+  if (!options?.force && loginSettingsLoad) return loginSettingsLoad
+
+  loginSettingsLoad = (async () => {
     const res = await fetch('/api/login-settings', { headers: { Accept: 'application/json' } })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return await res.json()
-  } catch (e) {
-    throw e
+    loginSettingsCache = await res.json()
+    return loginSettingsCache
+  })()
+
+  try {
+    return await loginSettingsLoad
+  } finally {
+    loginSettingsLoad = null
   }
 }
 
@@ -176,8 +193,10 @@ export async function updateLoginSettings(payload: { companyName?: string; showI
     if (token) headers['Authorization'] = `Bearer ${token}`
     const res = await fetch('/api/login-settings', { method: 'PUT', headers, body: JSON.stringify(payload) })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    return await res.json()
+    loginSettingsCache = await res.json()
+    return loginSettingsCache
   } catch (e) {
+    loginSettingsCache = null
     throw e
   }
 }
@@ -241,9 +260,11 @@ export async function saveRbacConfig(payload: any) {
   if (!res.ok) throw new Error(await responseMessage(res))
   const snapshot = await res.json()
 
-  if (!publishEffectivePermissionsFromRbacSnapshot(snapshot)) {
+  if (publishEffectivePermissionsFromRbacSnapshot(snapshot)) {
+    effectivePermissionsCacheReady = true
+  } else {
     try {
-      await getEffectivePermissions()
+      await getEffectivePermissions({ force: true })
     } catch {
       // Keep the current session intact; page access will re-check on the next navigation.
     }
@@ -252,15 +273,30 @@ export async function saveRbacConfig(payload: any) {
   return snapshot
 }
 
-export async function getEffectivePermissions(): Promise<string[]> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
-  const headers: Record<string, string> = { Accept: 'application/json' }
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  const res = await fetch('/api/rbac/effective-permissions', { headers })
-  if (!res.ok) throw new Error(await responseMessage(res))
-  const json = await res.json().catch(() => ({}))
-  const keys = json?.permissionKeys ?? json?.permissions ?? json?.PermissionKeys ?? []
-  return publishEffectivePermissionKeys(Array.isArray(keys) ? keys.map(String) : [])
+export async function getEffectivePermissions(options?: { force?: boolean }): Promise<string[]> {
+  if (!options?.force && effectivePermissionsCacheReady && hasCachedEffectivePermissionKeys()) {
+    return getCachedEffectivePermissionKeys()
+  }
+
+  if (!options?.force && effectivePermissionsLoad) return effectivePermissionsLoad
+
+  effectivePermissionsLoad = (async () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+    const headers: Record<string, string> = { Accept: 'application/json' }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    const res = await fetch('/api/rbac/effective-permissions', { headers })
+    if (!res.ok) throw new Error(await responseMessage(res))
+    const json = await res.json().catch(() => ({}))
+    const keys = json?.permissionKeys ?? json?.permissions ?? json?.PermissionKeys ?? []
+    effectivePermissionsCacheReady = true
+    return publishEffectivePermissionKeys(Array.isArray(keys) ? keys.map(String) : [])
+  })()
+
+  try {
+    return await effectivePermissionsLoad
+  } finally {
+    effectivePermissionsLoad = null
+  }
 }
 
 export async function checkPageAccess(path: string): Promise<{ allowed: boolean; permissionKey?: string | null }> {
@@ -414,6 +450,7 @@ async function uploadLoginAsset(path: string, file: File) {
         throw new Error(text || `HTTP ${res.status}`)
       }
     }
+    loginSettingsCache = null
     try { return await res.json() } catch { return null }
   } catch (e) {
     throw e
@@ -427,6 +464,7 @@ async function deleteLoginAsset(path: string) {
     if (token) headers['Authorization'] = `Bearer ${token}`
     const res = await fetch(path, { method: 'DELETE', headers })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    loginSettingsCache = null
     try { return await res.json() } catch { return null }
   } catch (e) {
     throw e

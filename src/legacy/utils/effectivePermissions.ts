@@ -42,6 +42,17 @@ export function getCachedEffectivePermissionKeys(): string[] {
   }
 }
 
+export function hasCachedEffectivePermissionKeys(): boolean {
+  if (cachedPermissionKeys !== null) return true
+  if (typeof window === 'undefined') return false
+
+  try {
+    return window.localStorage.getItem(EFFECTIVE_PERMISSIONS_STORAGE_KEY) !== null
+  } catch {
+    return false
+  }
+}
+
 export function publishEffectivePermissionKeys(keys: unknown): string[] {
   const normalized = normalizePermissionKeys(keys)
   cachedPermissionKeys = normalized
