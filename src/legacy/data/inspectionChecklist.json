@@ -1,0 +1,103 @@
+[
+    {
+        "group": "Lights",
+        "sequence": 1,
+        "detailsModelList": [
+            { "id": 1, "name": "Head Lights", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 2, "name": "Signal Lights", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 3, "name": "Tail Lights", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 4, "name": "Fog Lights", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 5, "name": "Wipers", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 6, "name": "Aircon", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" }
+        ]
+    },
+    {
+        "group": "Fluids",
+        "sequence": 2,
+        "detailsModelList": [
+            { "id": 1, "name": "ATF", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 2, "name": "Brake Fluid", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 3, "name": "Clutch Fluid", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 4, "name": "P/STR Fluid", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 5, "name": "Coolant", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" }
+        ]
+    },
+    {
+        "group": "PMS",
+        "sequence": 3,
+        "detailsModelList": [
+            { "id": 1, "name": "Engine Oil", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 2, "name": "Oil Filter", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 3, "name": "Spark Plugs", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 4, "name": "Air Filter", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 5, "name": "Fuel Filter", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 6, "name": "Cabin Filter", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" }
+        ]
+    },
+    {
+        "group": "Battery",
+        "sequence": 4,
+        "detailsModelList": [
+            { "id": 1, "name": "Battery", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" }
+        ]
+    },
+    {
+        "group": "Belts",
+        "sequence": 5,
+        "detailsModelList": [
+            { "id": 1, "name": "ALT / P.STR / AC", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 2, "name": "Drivebelt", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" }
+        ]
+    },
+    {
+        "group": "Brakes",
+        "sequence": 6,
+        "detailsModelList": [
+            { "id": 1, "name": "Brake Pads", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 2, "name": "Brake Shoes", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 3, "name": "Rotors", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 4, "name": "Drums", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 5, "name": "Caliper", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 6, "name": "Wheel Cylinder", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 7, "name": "Master Cylinder", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 8, "name": "W. Bearings", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" }
+        ]
+    },
+    {
+        "group": "Tires",
+        "sequence": 7,
+        "detailsModelList": [
+            { "id": 1, "name": "Front Left", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 2, "name": "Front Right", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 3, "name": "Rear Left", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 4, "name": "Rear Right", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 5, "name": "Spare", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 6, "name": "Horn", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" }
+        ]
+    },
+    {
+        "group": "Drive Train",
+        "sequence": 8,
+        "detailsModelList": [
+            { "id": 1, "name": "CV Boots", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 2, "name": "CV Joints", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 3, "name": "Supports", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 4, "name": "Clutch Kit", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" }
+        ]
+    },
+    {
+        "group": "Suspensions",
+        "sequence": 9,
+        "detailsModelList": [
+            { "id": 1, "name": "Shock Abs F_R_", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 2, "name": "Rack End", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 3, "name": "Tie Rod End", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 4, "name": "Steering Boot", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 5, "name": "Stab Link", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 6, "name": "Bushings", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 7, "name": "Suspension Arm", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 8, "name": "Alignment", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" },
+            { "id": 9, "name": "Differential Gear Oil", "isRed": false, "isAmber": false, "isGreen": false, "remarks": "" }
+        ]
+    }
+]

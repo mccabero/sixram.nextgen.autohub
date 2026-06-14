@@ -1,0 +1,2 @@
+// @ts-nocheck
+export const vehicles = Array.from({length:8}).map((_,i)=>({ id: i+1, vin: `VIN${1000+i}`, model: `Model ${i+1}`, owner: `Customer ${i+1}`, engineNo: `ENG${2000+i}`, chasisNo: `CHS${3000+i}`, transmissionParameterId: 1 + (i % 4), engineTypeParameterId: 1 + (i % 3), engineSizeParameterId: 1 + (i % 3), odometerParameterId: 1 + (i % 2), customerRegistrationTypeParameterId: 1 + (i % 2) }))

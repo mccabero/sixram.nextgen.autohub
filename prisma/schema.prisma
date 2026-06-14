@@ -1,0 +1,1247 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Phase 1 schema draft:
+// - Scalar EF Core fields are represented for all known entities.
+// - Prisma relation fields are intentionally deferred until live MSSQL table
+//   names, FK constraints, and delete behaviors are validated.
+// - PostgreSQL partial indexes must be added in raw SQL migrations.
+
+model CameraEvent {
+  Id                       Int       @id @default(autoincrement())
+  CameraIp                 String?   @db.VarChar(64)
+  Ipv6Address              String?   @db.VarChar(80)
+  PortNo                   Int?
+  Protocol                 String?   @db.VarChar(20)
+  MacAddress               String?   @db.VarChar(32)
+  ChannelId                Int?
+  ChannelName              String?   @db.VarChar(100)
+  EventDateTime            DateTime  @db.Timestamptz(3)
+  EventType                String    @db.VarChar(80)
+  EventState               String    @db.VarChar(30)
+  EventDescription         String?   @db.VarChar(200)
+  ActivePostCount          Int?
+  Source                   String?   @db.VarChar(80)
+  SnapshotPath             String?   @db.VarChar(300)
+  SnapshotUrl              String?   @db.VarChar(300)
+  SnapshotCapturedDateTime DateTime? @db.Timestamp(3)
+  SnapshotError            String?   @db.VarChar(500)
+  RawXml                   String    @db.Text
+  CreatedDateTime          DateTime  @db.Timestamp(3)
+
+  @@index([EventDateTime], map: "IX_CameraEvents_EventDateTime")
+  @@index([EventType, EventState, EventDateTime], map: "IX_CameraEvents_Type_State_DateTime")
+  @@index([CameraIp, EventDateTime], map: "IX_CameraEvents_CameraIp_EventDateTime")
+  @@map("CameraEvents")
+}
+
+model CompanyInfo {
+  Id               Int      @id @default(autoincrement())
+  Name             String   @db.VarChar(100)
+  Address          String   @db.Text
+  Email            String   @db.VarChar(100)
+  MobileNumber     String   @db.VarChar(50)
+  TIN              String   @db.VarChar(50)
+  GCash            String   @db.VarChar(50)
+  BankNo           String   @db.VarChar(100)
+  Name1            String   @db.VarChar(100)
+  Address1         String   @db.Text
+  Email1           String   @db.VarChar(100)
+  MobileNumber1    String   @db.VarChar(50)
+  TIN1             String   @db.VarChar(50)
+  GCash1           String   @db.VarChar(50)
+  BankNo1          String   @db.VarChar(100)
+  IsPrimaryCompany Boolean  @default(false)
+  CreatedById      Int
+  CreatedDateTime  DateTime @db.Timestamp(3)
+  UpdatedById      Int
+  UpdatedDateTime  DateTime @db.Timestamp(3)
+
+  @@map("CompanyInfos")
+}
+
+model Customer {
+  Id                     Int       @id @default(autoincrement())
+  IsChangan              Boolean   @default(false)
+  FirstName              String    @db.VarChar(100)
+  MiddleName             String?   @db.VarChar(100)
+  LastName               String    @db.VarChar(100)
+  Gender                 Int
+  Birthday               DateTime? @db.Timestamp(3)
+  CustomerCode           String?   @db.VarChar(50)
+  MobileNumber           String    @db.VarChar(50)
+  Email                  String?   @db.VarChar(100)
+  HomeAddress            String?   @db.Text
+  Notes                  String?   @db.Text
+  CompanyName            String?   @db.Text
+  CompanyAddress         String?   @db.Text
+  CompanyNo              String?   @db.VarChar(50)
+  IsActive               Boolean
+  LaborDiscountRate      Decimal   @db.Decimal(18, 2)
+  ProductDiscountRate    Decimal   @db.Decimal(18, 2)
+  IsVATExempt            Boolean
+  IsAllowWithholidingTax Boolean
+  CreatedById            Int
+  CreatedDateTime        DateTime  @db.Timestamp(3)
+  UpdatedById            Int
+  UpdatedDateTime        DateTime  @db.Timestamp(3)
+
+  DepositsAsCustomer    Deposit[]    @relation("FK_Deposit_Customer")
+  EstimatesAsCustomer   Estimate[]   @relation("FK_Estimate_Customer")
+  InspectionsAsCustomer Inspection[] @relation("FK_Inspection_Customer")
+  InvoicesAsCustomer    Invoice[]    @relation("FK_Invoice_Customer")
+  JobOrdersAsCustomer   JobOrder[]   @relation("FK_JobOrder_Customer")
+  MembershipsAsCustomer Membership[] @relation("FK_Membership_Customer")
+  PaymentsAsCustomer    Payment[]    @relation("FK_Payment_Customer")
+  QuickSalesAsCustomer  QuickSale[]  @relation("FK_QuickSales_Customer")
+  VehiclesAsCustomer    Vehicle[]    @relation("FK_Vehicle_Customer")
+
+  @@map("Customers")
+}
+
+model Deposit {
+  Id                     Int       @id @default(autoincrement())
+  IsChangan              Boolean   @default(false)
+  IsRefund               Boolean
+  ReferenceNo            String    @db.VarChar(100)
+  JobStatusId            Int
+  TransactionDateTime    DateTime  @db.Timestamp(3)
+  CustomerId             Int
+  JobOrderId             Int
+  PaymentTypeParameterId Int
+  DepositAmount          Decimal   @db.Decimal(18, 2)
+  PaymentReferenceNo     String?   @db.VarChar(100)
+  Description            String?   @db.Text
+  RefundAmount           Decimal?  @db.Decimal(18, 2)
+  RefundDateTime         DateTime? @db.Timestamp(3)
+  RefundReason           String?   @db.Text
+  CreatedById            Int
+  CreatedDateTime        DateTime  @db.Timestamp(3)
+  UpdatedById            Int
+  UpdatedDateTime        DateTime  @db.Timestamp(3)
+
+  Customer             Customer  @relation("FK_Deposit_Customer", fields: [CustomerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Deposit_Customer")
+  JobOrder             JobOrder  @relation("FK_Deposit_JobOrder", fields: [JobOrderId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Deposit_JobOrder")
+  JobStatus            JobStatus @relation("FK_Deposit_JobStatus", fields: [JobStatusId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Deposit_JobStatus")
+  PaymentTypeParameter Parameter @relation("FK_Deposit_PaymentTypeParameter", fields: [PaymentTypeParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Deposit_PaymentTypeParameter")
+
+  @@map("Deposits")
+}
+
+model Estimate {
+  Id                   Int       @id @default(autoincrement())
+  IsChangan            Boolean   @default(false)
+  IsPackage            Boolean
+  IsCustomerApproved   Boolean
+  InspectionId         Int?
+  ReferenceNo          String    @db.VarChar(255)
+  TransactionDate      DateTime? @db.Timestamp(3)
+  ExpirationDate       DateTime? @db.Timestamp(3)
+  EstimatedDays        Int
+  JobStatusId          Int
+  CustomerId           Int
+  VehicleId            Int
+  AdvisorUserId        Int
+  EstimatorUserId      Int
+  ApproverUserId       Int
+  ServiceGroupId       Int
+  Odometer             Int?
+  NextOdometerReminder Int?
+  CustomerPO           String?   @db.VarChar(100)
+  Summary              String?   @db.VarChar(255)
+  SubTotal             Decimal   @db.Decimal(18, 2)
+  VAT12                Decimal   @db.Decimal(18, 2)
+  LaborDiscount        Decimal   @db.Decimal(18, 2)
+  ProductDiscount      Decimal   @db.Decimal(18, 2)
+  AdditionalDiscount   Decimal   @db.Decimal(18, 2)
+  TotalAmount          Decimal   @db.Decimal(18, 2)
+  CreatedById          Int
+  CreatedDateTime      DateTime  @db.Timestamp(3)
+  UpdatedById          Int
+  UpdatedDateTime      DateTime  @db.Timestamp(3)
+
+  AdvisorUser                User              @relation("FK_Estimate_AdvisorUser", fields: [AdvisorUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Estimate_AdvisorUser")
+  ApproverUser               User              @relation("FK_Estimate_Approver", fields: [ApproverUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Estimate_Approver")
+  Customer                   Customer          @relation("FK_Estimate_Customer", fields: [CustomerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Estimate_Customer")
+  EstimatorUser              User              @relation("FK_Estimate_EstimatorUser", fields: [EstimatorUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Estimate_EstimatorUser")
+  JobStatus                  JobStatus         @relation("FK_Estimate_JobStatus", fields: [JobStatusId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Estimate_JobStatus")
+  ServiceGroup               ServiceGroup      @relation("FK_Estimate_ServiceGroup", fields: [ServiceGroupId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Estimate_ServiceGroup")
+  Vehicle                    Vehicle           @relation("FK_Estimate_Vehicle", fields: [VehicleId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Estimate_Vehicle")
+  EstimatePackagesAsEstimate EstimatePackage[] @relation("FK_EstimatePackage_Estimate")
+  EstimateProductsAsEstimate EstimateProduct[] @relation("FK_EstimateProduct_Estimate")
+  EstimateServicesAsEstimate EstimateService[] @relation("FK_EstimateService_Estimate")
+  JobOrdersAsEstimate        JobOrder[]        @relation("FK_JobOrder_Estimate")
+
+  @@map("Estimates")
+}
+
+model EstimatePackage {
+  Id              Int      @id @default(autoincrement())
+  EstimateId      Int
+  PackageId       Int
+  IsAdditional    Boolean  @default(false)
+  IncentiveSA     Decimal  @default(0) @db.Decimal(18, 2)
+  IncentiveTech   Decimal  @default(0) @db.Decimal(18, 2)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Estimate Estimate @relation("FK_EstimatePackage_Estimate", fields: [EstimateId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_EstimatePackage_Estimate")
+  Package  Package  @relation("FK_EstimatePackage_Package", fields: [PackageId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_EstimatePackage_Package")
+
+  @@map("EstimatePackages")
+}
+
+model EstimateProduct {
+  Id              Int      @id @default(autoincrement())
+  IsPackage       Boolean
+  IsRequired      Boolean  @default(true)
+  IsAdditional    Boolean  @default(false)
+  PackageId       Int?
+  EstimateId      Int
+  ProductId       Int
+  Price           Decimal  @db.Decimal(18, 2)
+  Qty             Int
+  Amount          Decimal  @db.Decimal(18, 2)
+  IncentiveSA     Decimal  @default(0) @db.Decimal(18, 2)
+  IncentiveTech   Decimal  @default(0) @db.Decimal(18, 2)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Estimate Estimate @relation("FK_EstimateProduct_Estimate", fields: [EstimateId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_EstimateProduct_Estimate")
+  Product  Product  @relation("FK_EstimateProduct_Product", fields: [ProductId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_EstimateProduct_Product")
+
+  @@map("EstimateProducts")
+}
+
+model EstimateService {
+  Id              Int      @id @default(autoincrement())
+  IsPackage       Boolean
+  IsRequired      Boolean  @default(true)
+  IsAdditional    Boolean  @default(false)
+  PackageId       Int?
+  EstimateId      Int
+  ServiceId       Int
+  Rate            Decimal  @db.Decimal(18, 2)
+  Hours           Decimal  @db.Decimal(18, 2)
+  Amount          Decimal  @db.Decimal(18, 2)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Estimate Estimate @relation("FK_EstimateService_Estimate", fields: [EstimateId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_EstimateService_Estimate")
+  Service  Service  @relation("FK_EstimateService_EstimateService", fields: [ServiceId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_EstimateService_EstimateService")
+
+  @@map("EstimateServices")
+}
+
+model EstimateTechnician {
+  Id               Int      @id @default(autoincrement())
+  EstimateId       Int
+  TechnicianUserId Int
+  CreatedById      Int
+  CreatedDateTime  DateTime @db.Timestamp(3)
+  UpdatedById      Int
+  UpdatedDateTime  DateTime @db.Timestamp(3)
+
+  TechnicianUser User @relation("FK_EstimateTechnician_User", fields: [TechnicianUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_EstimateTechnician_User")
+
+  @@map("EstimateTechnicians")
+}
+
+model Expense {
+  Id                     Int      @id @default(autoincrement())
+  IsChangan              Boolean  @default(false)
+  IsPaid                 Boolean
+  ReferenceNo            String   @db.VarChar(100)
+  ExpenseDateTime        DateTime @db.Timestamp(3)
+  Amount                 Decimal  @db.Decimal(18, 2)
+  VAT12                  Decimal  @db.Decimal(18, 2)
+  PayTo                  String   @db.VarChar(100)
+  Remarks                String   @db.Text
+  PaymentReferenceNo     String?  @db.VarChar(100)
+  PaymentTypeParameterId Int
+  JobStatusId            Int
+  ExpenseByUserId        Int
+  CreatedById            Int
+  CreatedDateTime        DateTime @db.Timestamp(3)
+  UpdatedById            Int
+  UpdatedDateTime        DateTime @db.Timestamp(3)
+
+  JobStatus            JobStatus @relation("FK_Expenses_JobStatus", fields: [JobStatusId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Expenses_JobStatus")
+  PaymentTypeParameter Parameter @relation("FK_Expenses_PaymentTypeParameter", fields: [PaymentTypeParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Expenses_PaymentTypeParameter")
+  ExpenseByUser        User      @relation("FK_Expenses_User", fields: [ExpenseByUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Expenses_User")
+
+  @@map("Expenses")
+}
+
+model Inspection {
+  Id                Int       @id @default(autoincrement())
+  IsChangan         Boolean   @default(false)
+  ReferenceNo       String    @db.VarChar(100)
+  TransactionDate   DateTime  @db.Timestamp(3)
+  ExpirationDate    DateTime? @db.Timestamp(3)
+  JobStatusId       Int
+  CustomerId        Int
+  VehicleId         Int
+  AdvisorUserId     Int
+  EstimatorUserId   Int
+  ApproverUserId    Int
+  ServiceGroupId    Int
+  InspectorUserId   Int
+  Odometer          Int?
+  VehicleFindings   String?   @db.Text
+  InspectionDetails String    @db.Text
+  Remarks           String?   @db.Text
+  DiagnosticResult  String?   @db.Text
+  CreatedById       Int
+  CreatedDateTime   DateTime  @db.Timestamp(3)
+  UpdatedById       Int
+  UpdatedDateTime   DateTime  @db.Timestamp(3)
+
+  AdvisorUser                       User                   @relation("FK_Inspection_AdvisorUser", fields: [AdvisorUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Inspection_AdvisorUser")
+  Customer                          Customer               @relation("FK_Inspection_Customer", fields: [CustomerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Inspection_Customer")
+  EstimatorUser                     User                   @relation("FK_Inspection_EstimatorUser", fields: [EstimatorUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Inspection_EstimatorUser")
+  InspectorUser                     User                   @relation("FK_Inspection_InspectorUser", fields: [InspectorUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Inspection_InspectorUser")
+  JobStatus                         JobStatus              @relation("FK_Inspection_JobStatus", fields: [JobStatusId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Inspection_JobStatus")
+  ServiceGroup                      ServiceGroup           @relation("FK_Inspection_ServiceGroup", fields: [ServiceGroupId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Inspection_ServiceGroup")
+  Vehicle                           Vehicle                @relation("FK_Inspection_Vehicle", fields: [VehicleId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Inspection_Vehicle")
+  InspectionTechniciansAsInspection InspectionTechnician[] @relation("FK_InspectionTechnician_Inspection")
+
+  @@map("Inspections")
+}
+
+model InspectionChecklistTemplate {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(120)
+  Description     String?  @db.VarChar(500)
+  Revision        Int      @default(1)
+  IsActive        Boolean  @default(false)
+  ChecklistJson   String   @db.Text
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  @@map("InspectionChecklistTemplates")
+}
+
+model InspectionTechnician {
+  Id               Int      @id @default(autoincrement())
+  InspectionId     Int
+  TechnicianUserId Int
+  CreatedById      Int
+  CreatedDateTime  DateTime @db.Timestamp(3)
+  UpdatedById      Int
+  UpdatedDateTime  DateTime @db.Timestamp(3)
+
+  Inspection     Inspection @relation("FK_InspectionTechnician_Inspection", fields: [InspectionId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_InspectionTechnician_Inspection")
+  TechnicianUser User       @relation("FK_InspectionTechnician_User", fields: [TechnicianUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_InspectionTechnician_User")
+
+  @@map("InspectionTechnicians")
+}
+
+model Invoice {
+  Id                 Int       @id @default(autoincrement())
+  IsChangan          Boolean   @default(false)
+  IsPackage          Boolean
+  InvoiceNo          String    @db.VarChar(100)
+  InvoiceDate        DateTime? @db.Timestamp(3)
+  DueDate            DateTime? @db.Timestamp(3)
+  JobOrderId         Int
+  JobStatusId        Int
+  CustomerId         Int
+  CustomerPO         String?   @db.VarChar(100)
+  AdvisorUserId      Int
+  Summary            String?   @db.VarChar(255)
+  SubTotal           Decimal   @db.Decimal(18, 2)
+  VAT12              Decimal   @db.Decimal(18, 2)
+  LaborDiscount      Decimal   @db.Decimal(18, 2)
+  ProductDiscount    Decimal   @db.Decimal(18, 2)
+  AdditionalDiscount Decimal   @db.Decimal(18, 2)
+  TotalAmount        Decimal   @db.Decimal(18, 2)
+  CreatedById        Int
+  CreatedDateTime    DateTime  @db.Timestamp(3)
+  UpdatedById        Int
+  UpdatedDateTime    DateTime  @db.Timestamp(3)
+
+  Customer                 Customer         @relation("FK_Invoice_Customer", fields: [CustomerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_Customer")
+  JobOrder                 JobOrder         @relation("FK_Invoice_JobOrder", fields: [JobOrderId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_JobOrder")
+  JobStatus                JobStatus        @relation("FK_Invoice_JobStatus", fields: [JobStatusId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_JobStatus")
+  AdvisorUser              User             @relation("FK_Invoice_User", fields: [AdvisorUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Invoice_User")
+  InvoicePackagesAsInvoice InvoicePackage[] @relation("FK_InvoicePackage_Invoice")
+  PaymentDetailsAsInvoice  PaymentDetail[]  @relation("FK_PaymentDetails_Invoice")
+
+  @@map("Invoices")
+}
+
+model InvoicePackage {
+  Id              Int      @id @default(autoincrement())
+  InvoiceId       Int
+  PackageId       Int
+  IncentiveSA     Decimal  @default(0) @db.Decimal(18, 2)
+  IncentiveTech   Decimal  @default(0) @db.Decimal(18, 2)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Invoice Invoice @relation("FK_InvoicePackage_Invoice", fields: [InvoiceId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_InvoicePackage_Invoice")
+  Package Package @relation("FK_InvoicePackage_Package", fields: [PackageId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_InvoicePackage_Package")
+
+  @@map("InvoicePackages")
+}
+
+model JobOrder {
+  Id                   Int       @id @default(autoincrement())
+  IsChangan            Boolean   @default(false)
+  IsPackage            Boolean
+  IsPaid               Boolean
+  EstimateId           Int
+  ReferenceNo          String    @db.VarChar(255)
+  TransactionDate      DateTime? @db.Timestamp(3)
+  ExpirationDate       DateTime? @db.Timestamp(3)
+  JobStatusId          Int
+  CustomerId           Int
+  VehicleId            Int
+  AdvisorUserId        Int
+  EstimatorUserId      Int
+  ApproverUserId       Int
+  ServiceGroupId       Int
+  Odometer             Int?
+  NextOdometerReminder Int?
+  InvoiceId            Int?
+  CustomerPO           String?   @db.VarChar(100)
+  Summary              String?   @db.VarChar(255)
+  SubTotal             Decimal   @db.Decimal(18, 2)
+  VAT12                Decimal   @db.Decimal(18, 2)
+  LaborDiscount        Decimal   @db.Decimal(18, 2)
+  ProductDiscount      Decimal   @db.Decimal(18, 2)
+  AdditionalDiscount   Decimal   @db.Decimal(18, 2)
+  TotalAmount          Decimal   @db.Decimal(18, 2)
+  CreatedById          Int
+  CreatedDateTime      DateTime  @db.Timestamp(3)
+  UpdatedById          Int
+  UpdatedDateTime      DateTime  @db.Timestamp(3)
+
+  AdvisorUser                   User                 @relation("FK_JobOrder_AdvisorUser", fields: [AdvisorUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrder_AdvisorUser")
+  ApproverUser                  User                 @relation("FK_JobOrder_ApproverUser", fields: [ApproverUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrder_ApproverUser")
+  Customer                      Customer             @relation("FK_JobOrder_Customer", fields: [CustomerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrder_Customer")
+  Estimate                      Estimate             @relation("FK_JobOrder_Estimate", fields: [EstimateId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrder_Estimate")
+  EstimatorUser                 User                 @relation("FK_JobOrder_EstimatorUser", fields: [EstimatorUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrder_EstimatorUser")
+  JobStatus                     JobStatus            @relation("FK_JobOrder_JobStatus", fields: [JobStatusId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrder_JobStatus")
+  ServiceGroup                  ServiceGroup         @relation("FK_JobOrder_ServiceGroup", fields: [ServiceGroupId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrder_ServiceGroup")
+  Vehicle                       Vehicle              @relation("FK_JobOrder_Vehicle", fields: [VehicleId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrder_Vehicle")
+  DepositsAsJobOrder            Deposit[]            @relation("FK_Deposit_JobOrder")
+  InvoicesAsJobOrder            Invoice[]            @relation("FK_Invoice_JobOrder")
+  JobOrderPackagesAsJobOrder    JobOrderPackage[]    @relation("FK_JobOrderPackage_JobOrderPackage")
+  JobOrderProductsAsJobOrder    JobOrderProduct[]    @relation("FK_JobOrderProduct_JobOrder")
+  JobOrderServicesAsJobOrder    JobOrderService[]    @relation("FK_JobOrderService_JobOrder")
+  JobOrderTechniciansAsJobOrder JobOrderTechnician[] @relation("FK_JobOrderTechnician_JobOrder")
+
+  @@map("JobOrders")
+}
+
+model JobOrderPackage {
+  Id              Int      @id @default(autoincrement())
+  JobOrderId      Int
+  PackageId       Int
+  IsAdditional    Boolean  @default(false)
+  IncentiveSA     Decimal  @default(0) @db.Decimal(18, 2)
+  IncentiveTech   Decimal  @default(0) @db.Decimal(18, 2)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  JobOrder JobOrder @relation("FK_JobOrderPackage_JobOrderPackage", fields: [JobOrderId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrderPackage_JobOrderPackage")
+  Package  Package  @relation("FK_JobOrderPackage_Package", fields: [PackageId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrderPackage_Package")
+
+  @@map("JobOrderPackages")
+}
+
+model JobOrderProduct {
+  Id              Int      @id @default(autoincrement())
+  IsPackage       Boolean
+  IsRequired      Boolean  @default(true)
+  IsAdditional    Boolean  @default(false)
+  PackageId       Int?
+  JobOrderId      Int
+  ProductId       Int
+  Price           Decimal  @db.Decimal(18, 2)
+  Qty             Int
+  Amount          Decimal  @db.Decimal(18, 2)
+  IncentiveSA     Decimal  @default(0) @db.Decimal(18, 2)
+  IncentiveTech   Decimal  @default(0) @db.Decimal(18, 2)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  JobOrder JobOrder @relation("FK_JobOrderProduct_JobOrder", fields: [JobOrderId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrderProduct_JobOrder")
+  Product  Product  @relation("FK_JobOrderProduct_Product", fields: [ProductId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrderProduct_Product")
+
+  @@map("JobOrderProducts")
+}
+
+model JobOrderService {
+  Id              Int      @id @default(autoincrement())
+  IsPackage       Boolean
+  IsRequired      Boolean  @default(true)
+  IsAdditional    Boolean  @default(false)
+  PackageId       Int?
+  JobOrderId      Int
+  ServiceId       Int
+  Rate            Decimal  @db.Decimal(18, 2)
+  Hours           Decimal  @db.Decimal(18, 2)
+  Amount          Decimal  @db.Decimal(18, 2)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  JobOrder JobOrder @relation("FK_JobOrderService_JobOrder", fields: [JobOrderId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrderService_JobOrder")
+  Service  Service  @relation("FK_JobOrderService_Service", fields: [ServiceId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrderService_Service")
+
+  @@map("JobOrderServices")
+}
+
+model JobOrderTechnician {
+  Id               Int      @id @default(autoincrement())
+  JobOrderId       Int
+  TechnicianUserId Int
+  CreatedById      Int
+  CreatedDateTime  DateTime @db.Timestamp(3)
+  UpdatedById      Int
+  UpdatedDateTime  DateTime @db.Timestamp(3)
+
+  JobOrder       JobOrder @relation("FK_JobOrderTechnician_JobOrder", fields: [JobOrderId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrderTechnician_JobOrder")
+  TechnicianUser User     @relation("FK_JobOrderTechnician_User", fields: [TechnicianUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_JobOrderTechnician_User")
+
+  @@map("JobOrderTechnicians")
+}
+
+model JobStatus {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(100)
+  Description     String?  @db.Text
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  DepositsAsJobStatus    Deposit[]    @relation("FK_Deposit_JobStatus")
+  EstimatesAsJobStatus   Estimate[]   @relation("FK_Estimate_JobStatus")
+  ExpensesAsJobStatus    Expense[]    @relation("FK_Expenses_JobStatus")
+  InspectionsAsJobStatus Inspection[] @relation("FK_Inspection_JobStatus")
+  InvoicesAsJobStatus    Invoice[]    @relation("FK_Invoice_JobStatus")
+  JobOrdersAsJobStatus   JobOrder[]   @relation("FK_JobOrder_JobStatus")
+  PaymentsAsJobStatus    Payment[]    @relation("FK_Payment_JobStatus")
+  PettyCashAsJobStatus   PettyCash[]  @relation("FK_PettyCash_JobStatus")
+  QuickSalesAsJobStatus  QuickSale[]  @relation("FK_QuickSales_JobStatus")
+
+  @@map("JobStatuses")
+}
+
+model Manufacturer {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(100)
+  Description     String?  @db.Text
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  ProductsAsManufacturer Product[] @relation("FK_Product_Manufacturer")
+
+  @@map("Manufacturers")
+}
+
+model Membership {
+  Id              Int      @id @default(autoincrement())
+  MembershipNo    String   @db.VarChar(50)
+  MembershipDate  DateTime @db.Timestamp(3)
+  ExpiryDate      DateTime @db.Timestamp(3)
+  PointsEarned    Decimal  @db.Decimal(18, 0)
+  CustomerId      Int
+  IsActive        Boolean
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Customer Customer @relation("FK_Membership_Customer", fields: [CustomerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Membership_Customer")
+
+  @@map("Memberships")
+}
+
+model OperationAccessCode {
+  Id                 Int       @id @default(autoincrement())
+  CodeHash           String    @db.VarChar(128)
+  CodeSalt           String    @db.VarChar(128)
+  CodeSuffix         String    @db.VarChar(2)
+  CodeValue          String?   @db.VarChar(6)
+  GeneratedById      Int
+  GeneratedDateTime  DateTime  @db.Timestamp(3)
+  ExpiresAt          DateTime  @db.Timestamp(3)
+  UsedById           Int?
+  UsedDateTime       DateTime? @db.Timestamp(3)
+  UsedForAction      String?   @db.VarChar(100)
+  UsedForReferenceId Int?
+
+  @@index([GeneratedDateTime, Id], map: "IX_OperationAccessCodes_GeneratedDateTime")
+  @@index([UsedDateTime, ExpiresAt], map: "IX_OperationAccessCodes_UsedDateTime_ExpiresAt")
+  @@map("OperationAccessCodes")
+}
+
+model Package {
+  Id                      Int      @id @default(autoincrement())
+  Name                    String   @db.VarChar(100)
+  Code                    String   @db.VarChar(50)
+  NextServiceReminderDays Int      @default(0)
+  IncentiveSA             Decimal  @default(0) @db.Decimal(18, 2)
+  IncentiveTech           Decimal  @default(0) @db.Decimal(18, 2)
+  IsHideAmount            Boolean
+  IsHideService           Boolean
+  IsHidePartsAndMaterials Boolean
+  IsDisplayCode           Boolean
+  Summary                 String?  @db.Text
+  SubTotal                Decimal  @db.Decimal(18, 2)
+  VAT12                   Decimal  @db.Decimal(18, 2)
+  TotalAmount             Decimal  @db.Decimal(18, 2)
+  CreatedById             Int
+  CreatedDateTime         DateTime @db.Timestamp(3)
+  UpdatedById             Int
+  UpdatedDateTime         DateTime @db.Timestamp(3)
+
+  EstimatePackagesAsPackage EstimatePackage[] @relation("FK_EstimatePackage_Package")
+  InvoicePackagesAsPackage  InvoicePackage[]  @relation("FK_InvoicePackage_Package")
+  JobOrderPackagesAsPackage JobOrderPackage[] @relation("FK_JobOrderPackage_Package")
+  PackageProductsAsPackage  PackageProduct[]  @relation("FK_PackageProduct_Package")
+  PackageServicesAsPackage  PackageService[]  @relation("FK_PackageService_Package")
+
+  @@map("Packages")
+}
+
+model PackageProduct {
+  Id              Int      @id @default(autoincrement())
+  PackageId       Int
+  ProductId       Int
+  Price           Decimal  @db.Decimal(18, 2)
+  Qty             Int
+  Amount          Decimal  @db.Decimal(18, 2)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Package Package @relation("FK_PackageProduct_Package", fields: [PackageId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PackageProduct_Package")
+  Product Product @relation("FK_PackageProduct_Product", fields: [ProductId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PackageProduct_Product")
+
+  @@map("PackageProducts")
+}
+
+model PackageService {
+  Id              Int      @id @default(autoincrement())
+  PackageId       Int
+  ServiceId       Int
+  Rate            Decimal  @db.Decimal(18, 2)
+  Hours           Decimal  @db.Decimal(18, 2)
+  Amount          Decimal  @db.Decimal(18, 2)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Package Package @relation("FK_PackageService_Package", fields: [PackageId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PackageService_Package")
+  Service Service @relation("FK_PackageService_Service", fields: [ServiceId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PackageService_Service")
+
+  @@map("PackageServices")
+}
+
+model Parameter {
+  Id               Int      @id @default(autoincrement())
+  ParameterGroupId Int
+  Name             String   @db.VarChar(100)
+  Code             String   @db.VarChar(50)
+  Description      String?  @db.Text
+  SortOrder        Int
+  NumericData      Int
+  OtherData        String?  @db.Text
+  CreatedById      Int
+  CreatedDateTime  DateTime @db.Timestamp(3)
+  UpdatedById      Int
+  UpdatedDateTime  DateTime @db.Timestamp(3)
+
+  ParameterGroup                              ParameterGroup  @relation("FK_Parameter_ParameterGroup", fields: [ParameterGroupId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Parameter_ParameterGroup")
+  DepositsAsPaymentTypeParameter              Deposit[]       @relation("FK_Deposit_PaymentTypeParameter")
+  ExpensesAsPaymentTypeParameter              Expense[]       @relation("FK_Expenses_PaymentTypeParameter")
+  PaymentDetailsAsPaymentTypeParameter        PaymentDetail[] @relation("FK_PaymentDetails_PaymentTypeParameter")
+  QuickSalesAsPaymentTypeParameter            QuickSale[]     @relation("FK_QuickSales_PaymentTypeParameter")
+  VehicleMakesAsRegionParameter               VehicleMake[]   @relation("FK_VehicleMake_Parameter")
+  VehicleModelsAsBodyParameter                VehicleModel[]  @relation("FK_VehicleModel_BodyParameter")
+  VehicleModelsAsClassificationParameter      VehicleModel[]  @relation("FK_VehicleModel_ClassificationParameter")
+  VehiclesAsCustomerRegistrationTypeParameter Vehicle[]       @relation("FK_Vehicle_CustomerRegistrationType_Parameter")
+  VehiclesAsEngineSizeParameter               Vehicle[]       @relation("FK_Vehicle_EngineSize_Parameter")
+  VehiclesAsEngineTypeParameter               Vehicle[]       @relation("FK_Vehicle_EngineType_Parameter")
+  VehiclesAsOdometerParameter                 Vehicle[]       @relation("FK_Vehicle_Odometer_Parameter")
+  VehiclesAsTransmissionParameter             Vehicle[]       @relation("FK_Vehicle_Transmission_Parameter")
+
+  @@map("Parameters")
+}
+
+model ParameterGroup {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(100)
+  Code            String   @db.VarChar(50)
+  Description     String?  @db.Text
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  ParametersAsParameterGroup Parameter[] @relation("FK_Parameter_ParameterGroup")
+
+  @@map("ParameterGroups")
+}
+
+model Payment {
+  Id                 Int      @id @default(autoincrement())
+  IsChangan          Boolean  @default(false)
+  IsFullyPaid        Boolean
+  ReferenceNo        String   @db.VarChar(100)
+  PaymentDate        DateTime @db.Timestamp(3)
+  JobStatusId        Int
+  CustomerId         Int
+  InvoiceTotalAmount Decimal  @db.Decimal(18, 2)
+  VAT12              Decimal  @db.Decimal(18, 2)
+  DepositAmount      Decimal  @db.Decimal(18, 2)
+  AmountPayable      Decimal  @db.Decimal(18, 2)
+  TotalPaidAmount    Decimal  @db.Decimal(18, 2)
+  Balance            Decimal  @db.Decimal(18, 2)
+  Remarks            String?  @db.Text
+  CreatedById        Int
+  CreatedDateTime    DateTime @db.Timestamp(3)
+  UpdatedById        Int
+  UpdatedDateTime    DateTime @db.Timestamp(3)
+
+  Customer                Customer        @relation("FK_Payment_Customer", fields: [CustomerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Payment_Customer")
+  JobStatus               JobStatus       @relation("FK_Payment_JobStatus", fields: [JobStatusId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Payment_JobStatus")
+  PaymentDetailsAsPayment PaymentDetail[] @relation("FK_PaymentDetails_Payment")
+
+  @@map("Payments")
+}
+
+model PaymentDetail {
+  Id                     Int       @id @default(autoincrement())
+  PaymentId              Int
+  PaymentTypeParameterId Int
+  InvoiceId              Int
+  IsFullyPaid            Boolean   @default(false)
+  AmountPaid             Decimal   @db.Decimal(18, 2)
+  IsDeposit              Boolean   @default(false)
+  PaymentDate            DateTime? @db.Timestamp(3)
+  PaymentReferenceNo     String?   @db.VarChar(255)
+  CreatedById            Int
+  CreatedDateTime        DateTime  @db.Timestamp(3)
+  UpdatedById            Int
+  UpdatedDateTime        DateTime  @db.Timestamp(3)
+
+  Invoice              Invoice   @relation("FK_PaymentDetails_Invoice", fields: [InvoiceId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PaymentDetails_Invoice")
+  Payment              Payment   @relation("FK_PaymentDetails_Payment", fields: [PaymentId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PaymentDetails_Payment")
+  PaymentTypeParameter Parameter @relation("FK_PaymentDetails_PaymentTypeParameter", fields: [PaymentTypeParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PaymentDetails_PaymentTypeParameter")
+
+  @@map("PaymentDetails")
+}
+
+model Permission {
+  Id              Int      @id @default(autoincrement())
+  Key             String   @db.VarChar(150)
+  Name            String   @db.VarChar(150)
+  Group           String   @db.VarChar(80)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  RolePermissionsAsPermission RolePermission[] @relation("FK_RolePermissions_Permissions")
+
+  @@unique([Key], map: "UX_Permissions_Key")
+  @@map("Permissions")
+}
+
+model PettyCash {
+  Id                  Int      @id @default(autoincrement())
+  IsChangan           Boolean  @default(false)
+  PCNo                String   @db.VarChar(50)
+  TransactionDateTime DateTime @db.Timestamp(3)
+  JobStatusId         Int?
+  PayTo               String   @db.Text
+  Particulars         String?  @db.Text
+  CashIn              Decimal  @db.Decimal(18, 2)
+  CashOut             Decimal  @db.Decimal(18, 2)
+  Balance             Decimal  @db.Decimal(18, 2)
+  PaidByUserId        Int
+  PaymentReceivedBy   String   @db.Text
+  CreatedById         Int
+  CreatedDateTime     DateTime @db.Timestamp(3)
+  UpdatedById         Int
+  UpdatedDateTime     DateTime @db.Timestamp(3)
+
+  JobStatus  JobStatus? @relation("FK_PettyCash_JobStatus", fields: [JobStatusId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PettyCash_JobStatus")
+  PaidByUser User       @relation("FK_PettyCash_PaidBy_User", fields: [PaidByUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_PettyCash_PaidBy_User")
+
+  @@map("PettyCash")
+}
+
+model Product {
+  Id                  Int       @id @default(autoincrement())
+  Name                String    @db.VarChar(100)
+  DisplayName         String    @db.VarChar(100)
+  Description         String?   @db.Text
+  PartNo              String?   @db.VarChar(50)
+  ProductGroupId      Int
+  ProductCategoryId   Int
+  UnitOfMeasureId     Int
+  ManufacturerId      Int
+  SupplierId          Int
+  ExpirationDateTime  DateTime? @db.Timestamp(3)
+  PurchaseCost        Decimal   @db.Decimal(18, 2)
+  MarkupRate          Decimal   @db.Decimal(18, 2)
+  SellingPrice        Decimal   @db.Decimal(18, 2)
+  IncentiveSA         Decimal   @default(0) @db.Decimal(18, 2)
+  IncentiveTech       Decimal   @default(0) @db.Decimal(18, 2)
+  StorageLocation     String?   @db.Text
+  LowStockThreshold   Decimal   @default(5) @db.Decimal(18, 2)
+  IsQuickSalesProduct Boolean   @default(false)
+  CreatedById         Int
+  CreatedDateTime     DateTime  @db.Timestamp(3)
+  UpdatedById         Int
+  UpdatedDateTime     DateTime  @db.Timestamp(3)
+
+  Manufacturer                          Manufacturer                  @relation("FK_Product_Manufacturer", fields: [ManufacturerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Product_Manufacturer")
+  ProductCategory                       ProductCategory               @relation("FK_Product_ProductCategory", fields: [ProductCategoryId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Product_ProductCategory")
+  ProductGroup                          ProductGroup                  @relation("FK_Product_ProductGroup", fields: [ProductGroupId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Product_ProductGroup")
+  Supplier                              Supplier                      @relation("FK_Product_Supplier", fields: [SupplierId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Product_Supplier")
+  UnitOfMeasure                         UnitOfMeasure                 @relation("FK_Product_UnitOfMeasure", fields: [UnitOfMeasureId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Product_UnitOfMeasure")
+  EstimateProductsAsProduct             EstimateProduct[]             @relation("FK_EstimateProduct_Product")
+  JobOrderProductsAsProduct             JobOrderProduct[]             @relation("FK_JobOrderProduct_Product")
+  PackageProductsAsProduct              PackageProduct[]              @relation("FK_PackageProduct_Product")
+  ProductInventoryCheckItemsAsProduct   ProductInventoryCheckItem[]   @relation("FK_ProductInventoryCheckItems_Products")
+  ProductInventoryTransactionsAsProduct ProductInventoryTransaction[] @relation("FK_ProductInventoryTransactions_Products")
+  ProductVehicleModelsAsProduct         ProductVehicleModel[]         @relation("FK_ProductVehicleModels_Products")
+  QuickSalesProductsAsProduct           QuickSalesProduct[]           @relation("FK_QuickSalesProduct_Product")
+
+  @@map("Products")
+}
+
+model ProductCategory {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(100)
+  Description     String?  @db.Text
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  ProductsAsProductCategory Product[] @relation("FK_Product_ProductCategory")
+
+  @@map("ProductCategories")
+}
+
+model ProductGroup {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(100)
+  Description     String?  @db.Text
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  ProductsAsProductGroup Product[] @relation("FK_Product_ProductGroup")
+
+  @@map("ProductGroups")
+}
+
+model ProductInventoryCheck {
+  Id              Int      @id @default(autoincrement())
+  CheckType       String   @db.VarChar(30)
+  CheckDate       DateTime @db.Date
+  Notes           String?  @db.VarChar(500)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  ProductInventoryCheckItemsAsProductInventoryCheck ProductInventoryCheckItem[] @relation("FK_ProductInventoryCheckItems_ProductInventoryChecks")
+
+  @@unique([CheckType, CheckDate], map: "UX_ProductInventoryChecks_CheckType_CheckDate")
+  @@map("ProductInventoryChecks")
+}
+
+model ProductInventoryCheckItem {
+  Id                      Int      @id @default(autoincrement())
+  ProductInventoryCheckId Int
+  ProductId               Int
+  SystemQuantity          Decimal  @db.Decimal(18, 2)
+  PhysicalQuantity        Decimal  @db.Decimal(18, 2)
+  Variance                Decimal  @db.Decimal(18, 2)
+  Notes                   String?  @db.VarChar(500)
+  CreatedById             Int
+  CreatedDateTime         DateTime @db.Timestamp(3)
+  UpdatedById             Int
+  UpdatedDateTime         DateTime @db.Timestamp(3)
+
+  ProductInventoryCheck ProductInventoryCheck @relation("FK_ProductInventoryCheckItems_ProductInventoryChecks", fields: [ProductInventoryCheckId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ProductInventoryCheckItems_ProductInventoryChecks")
+  Product               Product               @relation("FK_ProductInventoryCheckItems_Products", fields: [ProductId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ProductInventoryCheckItems_Products")
+
+  @@unique([ProductInventoryCheckId, ProductId], map: "UX_ProductInventoryCheckItems_Check_Product")
+  @@index([ProductInventoryCheckId], map: "IX_ProductInventoryCheckItems_ProductInventoryCheckId")
+  @@index([ProductId], map: "IX_ProductInventoryCheckItems_ProductId")
+  @@map("ProductInventoryCheckItems")
+}
+
+model ProductInventoryTransaction {
+  Id                  Int      @id @default(autoincrement())
+  ProductId           Int
+  TransactionType     String   @db.VarChar(30)
+  Quantity            Decimal  @db.Decimal(18, 2)
+  TransactionDateTime DateTime @db.Timestamp(3)
+  ReferenceNo         String?  @db.VarChar(100)
+  Notes               String?  @db.VarChar(500)
+  CreatedById         Int
+  CreatedDateTime     DateTime @db.Timestamp(3)
+  UpdatedById         Int
+  UpdatedDateTime     DateTime @db.Timestamp(3)
+
+  Product Product @relation("FK_ProductInventoryTransactions_Products", fields: [ProductId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_ProductInventoryTransactions_Products")
+
+  @@map("ProductInventoryTransactions")
+}
+
+model ProductVehicleModel {
+  Id              Int      @id @default(autoincrement())
+  ProductId       Int
+  VehicleModelId  Int
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Product      Product      @relation("FK_ProductVehicleModels_Products", fields: [ProductId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ProductVehicleModels_Products")
+  VehicleModel VehicleModel @relation("FK_ProductVehicleModels_VehicleModels", fields: [VehicleModelId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_ProductVehicleModels_VehicleModels")
+
+  @@unique([ProductId, VehicleModelId], map: "UX_ProductVehicleModels_ProductId_VehicleModelId")
+  @@index([VehicleModelId], map: "IX_ProductVehicleModels_VehicleModelId")
+  @@map("ProductVehicleModels")
+}
+
+model QuickSale {
+  Id                     Int      @id @default(autoincrement())
+  IsChangan              Boolean  @default(false)
+  ReferenceNo            String   @db.VarChar(100)
+  TransactionDate        DateTime @db.Timestamp(3)
+  JobStatusId            Int
+  CustomerId             Int
+  PaymentTypeParameterId Int
+  PaymentReferenceNo     String?  @db.VarChar(255)
+  SalesPersonUserId      Int
+  Summary                String?  @db.Text
+  SubTotal               Decimal  @db.Decimal(18, 2)
+  VAT12                  Decimal  @db.Decimal(18, 2)
+  Discount               Decimal  @db.Decimal(18, 2)
+  TotalAmount            Decimal  @db.Decimal(18, 2)
+  Payment                Decimal  @db.Decimal(18, 2)
+  Change                 Decimal  @db.Decimal(18, 2)
+  CreatedById            Int
+  CreatedDateTime        DateTime @db.Timestamp(3)
+  UpdatedById            Int
+  UpdatedDateTime        DateTime @db.Timestamp(3)
+
+  Customer                       Customer            @relation("FK_QuickSales_Customer", fields: [CustomerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_QuickSales_Customer")
+  JobStatus                      JobStatus           @relation("FK_QuickSales_JobStatus", fields: [JobStatusId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_QuickSales_JobStatus")
+  PaymentTypeParameter           Parameter           @relation("FK_QuickSales_PaymentTypeParameter", fields: [PaymentTypeParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_QuickSales_PaymentTypeParameter")
+  SalesPersonUser                User                @relation("FK_QuickSales_SalesPersonUser", fields: [SalesPersonUserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_QuickSales_SalesPersonUser")
+  QuickSalesProductsAsQuickSales QuickSalesProduct[] @relation("FK_QuickSalesProduct_QuickSales")
+
+  @@map("QuickSales")
+}
+
+model QuickSalesProduct {
+  Id              Int      @id @default(autoincrement())
+  QuickSalesId    Int
+  ProductId       Int
+  Price           Decimal  @db.Decimal(18, 2)
+  Qty             Int
+  Amount          Decimal  @db.Decimal(18, 2)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Product    Product   @relation("FK_QuickSalesProduct_Product", fields: [ProductId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_QuickSalesProduct_Product")
+  QuickSales QuickSale @relation("FK_QuickSalesProduct_QuickSales", fields: [QuickSalesId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_QuickSalesProduct_QuickSales")
+
+  @@map("QuickSalesProducts")
+}
+
+model Role {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(100)
+  Description     String?  @db.Text
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  RolePermissionsAsRole RolePermission[] @relation("FK_RolePermissions_Roles")
+  UserRolesAsRole       UserRole[]       @relation("FK_UserRoles_Role")
+  UsersAsRole           User[]           @relation("FK_User_Role")
+
+  @@map("Roles")
+}
+
+model RolePermission {
+  Id              Int      @id @default(autoincrement())
+  RoleId          Int
+  PermissionId    Int
+  Allowed         Boolean  @default(false)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Permission Permission @relation("FK_RolePermissions_Permissions", fields: [PermissionId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_RolePermissions_Permissions")
+  Role       Role       @relation("FK_RolePermissions_Roles", fields: [RoleId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_RolePermissions_Roles")
+
+  @@unique([RoleId, PermissionId], map: "UX_RolePermissions_RoleId_PermissionId")
+  @@map("RolePermissions")
+}
+
+model Service {
+  Id                   Int      @id @default(autoincrement())
+  Name                 String   @db.VarChar(100)
+  Code                 String   @db.VarChar(100)
+  ServiceGroupId       Int
+  ServiceCategoryId    Int
+  StandardRate         Decimal  @db.Decimal(18, 2)
+  StandardHours        Decimal  @db.Decimal(18, 2)
+  IsReplacement        Boolean
+  IsAllowRateOverride  Boolean
+  IsMechanicRequired   Boolean
+  DisplayStandardHours Boolean
+  DisplayStandardRate  Boolean
+  DisplayNotes         Boolean
+  CreatedById          Int
+  CreatedDateTime      DateTime @db.Timestamp(3)
+  UpdatedById          Int
+  UpdatedDateTime      DateTime @db.Timestamp(3)
+
+  ServiceCategory           ServiceCategory   @relation("FK_Service_ServiceCategory", fields: [ServiceCategoryId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Service_ServiceCategory")
+  ServiceGroup              ServiceGroup      @relation("FK_Service_ServiceGroup", fields: [ServiceGroupId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Service_ServiceGroup")
+  EstimateServicesAsService EstimateService[] @relation("FK_EstimateService_EstimateService")
+  JobOrderServicesAsService JobOrderService[] @relation("FK_JobOrderService_Service")
+  PackageServicesAsService  PackageService[]  @relation("FK_PackageService_Service")
+
+  @@map("Services")
+}
+
+model ServiceCategory {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(100)
+  Description     String?  @db.Text
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  ServicesAsServiceCategory Service[] @relation("FK_Service_ServiceCategory")
+
+  @@map("ServiceCategories")
+}
+
+model ServiceGroup {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(100)
+  Description     String?  @db.Text
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  EstimatesAsServiceGroup   Estimate[]   @relation("FK_Estimate_ServiceGroup")
+  InspectionsAsServiceGroup Inspection[] @relation("FK_Inspection_ServiceGroup")
+  JobOrdersAsServiceGroup   JobOrder[]   @relation("FK_JobOrder_ServiceGroup")
+  ServicesAsServiceGroup    Service[]    @relation("FK_Service_ServiceGroup")
+
+  @@map("ServiceGroups")
+}
+
+model Supplier {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(100)
+  Address         String?  @db.VarChar(255)
+  ContactPerson   String   @db.VarChar(100)
+  ContactNumber   String   @db.VarChar(50)
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  ProductsAsSupplier Product[] @relation("FK_Product_Supplier")
+
+  @@map("Suppliers")
+}
+
+model UnitOfMeasure {
+  Id              Int      @id @default(autoincrement())
+  Name            String   @db.VarChar(100)
+  Description     String?  @db.Text
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  ProductsAsUnitOfMeasure Product[] @relation("FK_Product_UnitOfMeasure")
+
+  @@map("UnitOfMeasures")
+}
+
+model User {
+  Id              Int      @id @default(autoincrement())
+  Email           String   @db.VarChar(100)
+  PasswordHash    String   @db.Text
+  Salt            String   @db.Text
+  PinHash         String   @db.Text
+  PinSalt         String   @db.Text
+  RoleId          Int
+  Gender          Int
+  Firstname       String   @db.VarChar(100)
+  MiddleName      String?  @db.VarChar(100)
+  LastName        String   @db.VarChar(100)
+  MobileNumber    String?  @db.VarChar(50)
+  Birthday        DateTime @db.Timestamp(3)
+  Address         String?  @db.Text
+  IsActive        Boolean
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Role                                  Role                   @relation("FK_User_Role", fields: [RoleId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_User_Role")
+  EstimatesAsAdvisorUser                Estimate[]             @relation("FK_Estimate_AdvisorUser")
+  EstimatesAsApproverUser               Estimate[]             @relation("FK_Estimate_Approver")
+  EstimatesAsEstimatorUser              Estimate[]             @relation("FK_Estimate_EstimatorUser")
+  EstimateTechniciansAsTechnicianUser   EstimateTechnician[]   @relation("FK_EstimateTechnician_User")
+  ExpensesAsExpenseByUser               Expense[]              @relation("FK_Expenses_User")
+  InspectionsAsAdvisorUser              Inspection[]           @relation("FK_Inspection_AdvisorUser")
+  InspectionsAsEstimatorUser            Inspection[]           @relation("FK_Inspection_EstimatorUser")
+  InspectionsAsInspectorUser            Inspection[]           @relation("FK_Inspection_InspectorUser")
+  InspectionTechniciansAsTechnicianUser InspectionTechnician[] @relation("FK_InspectionTechnician_User")
+  InvoicesAsAdvisorUser                 Invoice[]              @relation("FK_Invoice_User")
+  JobOrdersAsAdvisorUser                JobOrder[]             @relation("FK_JobOrder_AdvisorUser")
+  JobOrdersAsApproverUser               JobOrder[]             @relation("FK_JobOrder_ApproverUser")
+  JobOrdersAsEstimatorUser              JobOrder[]             @relation("FK_JobOrder_EstimatorUser")
+  JobOrderTechniciansAsTechnicianUser   JobOrderTechnician[]   @relation("FK_JobOrderTechnician_User")
+  PettyCashAsPaidByUser                 PettyCash[]            @relation("FK_PettyCash_PaidBy_User")
+  QuickSalesAsSalesPersonUser           QuickSale[]            @relation("FK_QuickSales_SalesPersonUser")
+  UserRolesAsUser                       UserRole[]             @relation("FK_UserRoles_User")
+
+  @@map("Users")
+}
+
+model UserRole {
+  Id              Int      @id @default(autoincrement())
+  UserId          Int
+  RoleId          Int
+  CreatedById     Int
+  CreatedDateTime DateTime @db.Timestamp(3)
+  UpdatedById     Int
+  UpdatedDateTime DateTime @db.Timestamp(3)
+
+  Role Role @relation("FK_UserRoles_Role", fields: [RoleId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_UserRoles_Role")
+  User User @relation("FK_UserRoles_User", fields: [UserId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_UserRoles_User")
+
+  @@map("UserRoles")
+}
+
+model Vehicle {
+  Id                                  Int      @id @default(autoincrement())
+  IsChangan                           Boolean  @default(false)
+  CustomerId                          Int
+  PlateNo                             String   @db.VarChar(50)
+  VehicleModelId                      Int
+  VIN                                 String?  @db.Text
+  YearModel                           Int
+  EngineNo                            String?  @db.Text
+  ChasisNo                            String?  @db.Text
+  TransmissionParameterId             Int
+  OdometerParameterId                 Int
+  CustomerRegistrationTypeParameterId Int
+  EngineSizeParameterId               Int
+  EngineTypeParameterId               Int
+  CreatedById                         Int
+  CreatedDateTime                     DateTime @db.Timestamp(3)
+  UpdatedById                         Int
+  UpdatedDateTime                     DateTime @db.Timestamp(3)
+
+  Customer                          Customer     @relation("FK_Vehicle_Customer", fields: [CustomerId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Vehicle_Customer")
+  CustomerRegistrationTypeParameter Parameter    @relation("FK_Vehicle_CustomerRegistrationType_Parameter", fields: [CustomerRegistrationTypeParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Vehicle_CustomerRegistrationType_Parameter")
+  EngineSizeParameter               Parameter    @relation("FK_Vehicle_EngineSize_Parameter", fields: [EngineSizeParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Vehicle_EngineSize_Parameter")
+  EngineTypeParameter               Parameter    @relation("FK_Vehicle_EngineType_Parameter", fields: [EngineTypeParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Vehicle_EngineType_Parameter")
+  OdometerParameter                 Parameter    @relation("FK_Vehicle_Odometer_Parameter", fields: [OdometerParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Vehicle_Odometer_Parameter")
+  TransmissionParameter             Parameter    @relation("FK_Vehicle_Transmission_Parameter", fields: [TransmissionParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Vehicle_Transmission_Parameter")
+  VehicleModel                      VehicleModel @relation("FK_Vehicle_VehicleModel", fields: [VehicleModelId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_Vehicle_VehicleModel")
+  EstimatesAsVehicle                Estimate[]   @relation("FK_Estimate_Vehicle")
+  InspectionsAsVehicle              Inspection[] @relation("FK_Inspection_Vehicle")
+  JobOrdersAsVehicle                JobOrder[]   @relation("FK_JobOrder_Vehicle")
+
+  @@map("Vehicles")
+}
+
+model VehicleMake {
+  Id                Int      @id @default(autoincrement())
+  Name              String   @db.VarChar(100)
+  Description       String?  @db.Text
+  RegionParameterId Int
+  CreatedById       Int
+  CreatedDateTime   DateTime @db.Timestamp(3)
+  UpdatedById       Int
+  UpdatedDateTime   DateTime @db.Timestamp(3)
+
+  RegionParameter            Parameter      @relation("FK_VehicleMake_Parameter", fields: [RegionParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_VehicleMake_Parameter")
+  VehicleModelsAsVehicleMake VehicleModel[] @relation("FK_VehicleModel_VehicleMake")
+
+  @@map("VehicleMakes")
+}
+
+model VehicleModel {
+  Id                        Int      @id @default(autoincrement())
+  VehicleMakeId             Int
+  Name                      String   @db.VarChar(100)
+  Description               String?  @db.Text
+  BodyParameterId           Int
+  ClassificationParameterId Int
+  CreatedById               Int
+  CreatedDateTime           DateTime @db.Timestamp(3)
+  UpdatedById               Int
+  UpdatedDateTime           DateTime @db.Timestamp(3)
+
+  BodyParameter                      Parameter             @relation("FK_VehicleModel_BodyParameter", fields: [BodyParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_VehicleModel_BodyParameter")
+  ClassificationParameter            Parameter             @relation("FK_VehicleModel_ClassificationParameter", fields: [ClassificationParameterId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_VehicleModel_ClassificationParameter")
+  VehicleMake                        VehicleMake           @relation("FK_VehicleModel_VehicleMake", fields: [VehicleMakeId], references: [Id], onDelete: NoAction, onUpdate: NoAction, map: "FK_VehicleModel_VehicleMake")
+  ProductVehicleModelsAsVehicleModel ProductVehicleModel[] @relation("FK_ProductVehicleModels_VehicleModels")
+  VehiclesAsVehicleModel             Vehicle[]             @relation("FK_Vehicle_VehicleModel")
+
+  @@map("VehicleModels")
+}
