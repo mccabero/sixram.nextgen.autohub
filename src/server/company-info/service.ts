@@ -65,11 +65,15 @@ async function buildCompanyLogoPath(companyId: number) {
   const token = getPublicBlobToken();
 
   if (token) {
-    const blob = await findBlobImageByPrefix(
-      `company-logo/${companyId}/company_logo`,
-      token,
-    );
-    if (blob) return blob.url;
+    try {
+      const blob = await findBlobImageByPrefix(
+        `company-logo/${companyId}/company_logo`,
+        token,
+      );
+      if (blob) return blob.url;
+    } catch (error) {
+      console.error("[company-info] Blob logo lookup failed", error);
+    }
   }
 
   const directory = path.join(

@@ -178,16 +178,12 @@ async function wrappedFetch(input: RequestInfo, init?: RequestInit): Promise<Res
       return res
     }
 
-    // If server returns any 5xx, clear session and redirect to force fresh login.
-    // Store a short logout reason so the login page can show a friendly message.
+    // Server errors are not authentication failures; keep the session intact so
+    // the page can show the actual failing action to the user.
     if (res.status >= 500 && res.status < 600) {
       try{ _loadingDecrement() }catch{}
       if (isLoginRequest || isOverrideAuthRequest) return res
-      try {
-        localStorage.setItem('logout_reason', JSON.stringify({ status: res.status, message: SERVER_UNAVAILABLE_MESSAGE }))
-      } catch {}
-      console.warn('[fetchWrapper] server error (5xx), clearing session', { url: input, status: res.status })
-      clearSessionAndRedirect()
+      console.warn('[fetchWrapper] server error (5xx), keeping session', { url: input, status: res.status })
       return res
     }
 

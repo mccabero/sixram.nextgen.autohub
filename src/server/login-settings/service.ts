@@ -36,8 +36,12 @@ async function buildAssetUrl(prefix: string, routeSegment: string) {
   const token = getPublicBlobToken();
 
   if (token) {
-    const blob = await findBlobImageByPrefix(`login/${prefix}`, token);
-    if (blob) return blob.url;
+    try {
+      const blob = await findBlobImageByPrefix(`login/${prefix}`, token);
+      if (blob) return blob.url;
+    } catch (error) {
+      console.error("[login-settings] Blob asset lookup failed", error);
+    }
   }
 
   const asset = findUploadedImageFile(getLoginUploadsDir(), prefix);
@@ -76,7 +80,13 @@ function readLocalSettings() {
 
 async function readSettings() {
   const token = getPublicBlobToken();
-  if (token) return readBlobSettings(token);
+  if (token) {
+    try {
+      return await readBlobSettings(token);
+    } catch (error) {
+      console.error("[login-settings] Blob settings lookup failed", error);
+    }
+  }
   return readLocalSettings();
 }
 

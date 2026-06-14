@@ -24,13 +24,17 @@ export async function serveUploadedImage(directory: string, prefix: string) {
   const token = getPublicBlobToken();
 
   if (token) {
-    const blob = await findBlobImageByPrefix(
-      localDirectoryToBlobPrefix(directory, prefix),
-      token,
-    );
+    try {
+      const blob = await findBlobImageByPrefix(
+        localDirectoryToBlobPrefix(directory, prefix),
+        token,
+      );
 
-    if (blob) {
-      return Response.redirect(blob.url);
+      if (blob) {
+        return Response.redirect(blob.url);
+      }
+    } catch (error) {
+      console.error("[image-assets] Blob lookup failed", error);
     }
   }
 
@@ -70,25 +74,38 @@ export async function saveUploadedImage(
   const token = getPublicBlobToken();
   const blobPrefix = localDirectoryToBlobPrefix(directory, prefix);
 
+  if (!token && process.env.VERCEL === "1") {
+    return badRequest(
+      "Public Blob storage is not configured. Please set PUBLIC_BLOB_READ_WRITE_TOKEN in Vercel.",
+    );
+  }
+
   if (token) {
-    await deleteBlobImagesByPrefix(blobPrefix, token);
-    const blob = await putImageBlob({
-      access: "public",
-      allowOverwrite: true,
-      file,
-      pathname: `${blobPrefix}${extension}`,
-      token,
-    });
+    try {
+      await deleteBlobImagesByPrefix(blobPrefix, token);
+      const blob = await putImageBlob({
+        access: "public",
+        allowOverwrite: true,
+        file,
+        pathname: `${blobPrefix}${extension}`,
+        token,
+      });
 
-    if (!blob) {
-      return badRequest("Only JPG, PNG, GIF, and WebP images are supported.");
+      if (!blob) {
+        return badRequest("Only JPG, PNG, GIF, and WebP images are supported.");
+      }
+
+      return legacyJson({
+        ...responsePayload,
+        path: blob.url,
+        url: blob.url,
+      });
+    } catch (error) {
+      console.error("[image-assets] Blob upload failed", error);
+      return badRequest(
+        "Public Blob upload failed. Please verify PUBLIC_BLOB_READ_WRITE_TOKEN is connected to this project.",
+      );
     }
-
-    return legacyJson({
-      ...responsePayload,
-      path: blob.url,
-      url: blob.url,
-    });
   }
 
   mkdirSync(/*turbopackIgnore: true*/ directory, { recursive: true });
@@ -109,11 +126,24 @@ export async function deleteUploadedImage(
   const token = getPublicBlobToken();
 
   if (token) {
-    await deleteBlobImagesByPrefix(
-      localDirectoryToBlobPrefix(directory, prefix),
-      token,
+    try {
+      await deleteBlobImagesByPrefix(
+        localDirectoryToBlobPrefix(directory, prefix),
+        token,
+      );
+      return legacyJson(responsePayload);
+    } catch (error) {
+      console.error("[image-assets] Blob delete failed", error);
+      return badRequest(
+        "Public Blob delete failed. Please verify PUBLIC_BLOB_READ_WRITE_TOKEN is connected to this project.",
+      );
+    }
+  }
+
+  if (process.env.VERCEL === "1") {
+    return badRequest(
+      "Public Blob storage is not configured. Please set PUBLIC_BLOB_READ_WRITE_TOKEN in Vercel.",
     );
-    return legacyJson(responsePayload);
   }
 
   removeUploadedImageFiles(directory, prefix);

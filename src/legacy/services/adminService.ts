@@ -103,6 +103,24 @@ async function fetchJson(path: string) {
   }
 }
 
+function parseErrorMessage(text: string, fallback: string) {
+  const raw = text.trim()
+  if (!raw) return fallback
+
+  try {
+    const parsed = JSON.parse(raw)
+    if (typeof parsed === 'string' && parsed.trim()) return parsed.trim()
+    if (parsed && typeof parsed === 'object') {
+      const message = (parsed as any).error ?? (parsed as any).message ?? (parsed as any).Message
+      if (typeof message === 'string' && message.trim()) return message.trim()
+    }
+  } catch {
+    // keep raw response text
+  }
+
+  return raw
+}
+
 function normalizeArrayResponse(json: any) {
   if (Array.isArray(json)) return json
   if (json == null) return []
@@ -425,13 +443,7 @@ export async function uploadCompanyLogo(companyId: string | number, file: File) 
     if (!res.ok) {
       // try to extract server error message
       const text = await res.text().catch(() => '')
-      try {
-        const j = JSON.parse(text || '{}')
-        const msg = j?.error || j?.message || text || `HTTP ${res.status}`
-        throw new Error(msg)
-      } catch {
-        throw new Error(text || `HTTP ${res.status}`)
-      }
+      throw new Error(parseErrorMessage(text, `HTTP ${res.status}`))
     }
     try { return await res.json() } catch { return null }
   } catch (e) {
@@ -450,13 +462,7 @@ async function uploadLoginAsset(path: string, file: File) {
     const res = await fetch(path, { method: 'POST', headers, body: form })
     if (!res.ok) {
       const text = await res.text().catch(() => '')
-      try {
-        const j = JSON.parse(text || '{}')
-        const msg = j?.error || j?.message || text || `HTTP ${res.status}`
-        throw new Error(msg)
-      } catch {
-        throw new Error(text || `HTTP ${res.status}`)
-      }
+      throw new Error(parseErrorMessage(text, `HTTP ${res.status}`))
     }
     loginSettingsCache = null
     try { return await res.json() } catch { return null }
