@@ -3,6 +3,7 @@ node_modules
 out
 dist
 coverage
+uploads/
 *.log
 .relation-generation-summary.json
 
